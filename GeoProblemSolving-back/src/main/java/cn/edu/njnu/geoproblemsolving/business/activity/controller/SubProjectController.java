@@ -130,27 +130,27 @@ public class SubProjectController {
         return subprojectService.findLineage(aid);
     }
 
-    /**
-     * Link two activity
-     * @param aid1
-     * @param aid2
-     * @param pid
-     * @param update
-     * @return
-     */
-    @RequestMapping(method = RequestMethod.POST, value = "/link/{aid1}/{aid2}")
-    public JsonResult linkActivities(@PathVariable("aid1") String aid1, @PathVariable("aid2") String aid2, @RequestParam("pid") String pid, @RequestBody UpdateActivityDTO update) {
-        return subprojectService.linkActivities(update, aid1, aid2, pid);
-    }
-
-    /**
-     * Separate two activities
-     * @param aid1
-     * @param aid2
-     * @return
-     */
-    @RequestMapping(method = RequestMethod.POST, value = "/separate/{aid1}/{aid2}")
-    public JsonResult separateActivities(@PathVariable("aid1") String aid1, @PathVariable("aid2") String aid2, @RequestBody UpdateActivityDTO update) {
-        return subprojectService.separateActivities(update, aid1, aid2);
-    }
+//    /**
+//     * Link two activity
+//     * @param aid1
+//     * @param aid2
+//     * @param pid
+//     * @param update
+//     * @return
+//     */
+//    @RequestMapping(method = RequestMethod.POST, value = "/link/{aid1}/{aid2}")
+//    public JsonResult linkActivities(@PathVariable("aid1") String aid1, @PathVariable("aid2") String aid2, @RequestParam("pid") String pid, @RequestBody UpdateActivityDTO update) {
+//        return subprojectService.linkActivities(update, aid1, aid2, pid);
+//    }
+//
+//    /**
+//     * Separate two activities
+//     * @param aid1
+//     * @param aid2
+//     * @return
+//     */
+//    @RequestMapping(method = RequestMethod.POST, value = "/separate/{aid1}/{aid2}")
+//    public JsonResult separateActivities(@PathVariable("aid1") String aid1, @PathVariable("aid2") String aid2, @RequestBody UpdateActivityDTO update) {
+//        return subprojectService.separateActivities(update, aid1, aid2);
+//    }
 }

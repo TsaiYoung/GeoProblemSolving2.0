@@ -2147,18 +2147,9 @@ var vue = new Vue({
         },
 
         openModelPage(modelOid){
-            window.open('http://geomodeling.njnu.edu.cn/computableModel/'+modelOid)
         },
 
         openModelContributer(modelOid){
-            axios.get("http://geomodeling.njnu.edu.cn/computableModel/getUserOidByOid",{
-                params:{
-                    oid:modelOid
-                }
-            }).then(res => {
-                    window.open('/profile/'+res.data.data)
-                }
-            )
         },
 
         createAndUploadParamFile() {
@@ -3634,7 +3625,6 @@ var vue = new Vue({
                 this.modelActions = this.iframeWindow.getModels();
                 this.modelActions.forEach((model) => {
                     $.ajax({
-                        url: 'http://geomodeling.njnu.edu.cn/computableModel/getComputableModelsBySearchTerms',
                         data: {
                             searchTerms: model.name
                         },

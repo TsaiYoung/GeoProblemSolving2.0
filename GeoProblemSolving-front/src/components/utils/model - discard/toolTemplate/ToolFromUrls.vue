@@ -66,7 +66,6 @@ export default {
   data() {
     return {
       modelList: [],
-      geoModelingModel: "http://geomodeling.njnu.edu.cn/modelItem/",
       inputUrl: {},
       selectModelName: "",
       selectModelDes: ""

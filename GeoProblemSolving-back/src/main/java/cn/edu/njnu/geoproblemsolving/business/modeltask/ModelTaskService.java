@@ -30,7 +30,6 @@ public class ModelTaskService {
 
     public JSONObject getComputeModel(String doi) {//根据pid.md5获得
         RestTemplate restTemplate = new RestTemplate();
-        String urlStr = "http://geomodeling.njnu.edu.cn/computableModel/getInfo/" + doi; ////Step0:根据MD5获取可用的任务服务器
 
         ResponseEntity<JSONObject> jsonObjectResponseEntity = restTemplate.getForEntity(urlStr, JSONObject.class);//虚拟http请求
         if (!jsonObjectResponseEntity.getStatusCode().is2xxSuccessful()) {
@@ -42,7 +41,6 @@ public class ModelTaskService {
 
     public JsonResult getConvertComputeModel(String doi) {//根据pid.md5获得
         RestTemplate restTemplate = new RestTemplate();
-        String urlStr = "http://geomodeling.njnu.edu.cn/computableModel/getInfo/" + doi; ////Step0:根据MD5获取可用的任务服务器
 
         //我是Chrome
         HttpHeaders headers = new HttpHeaders();
