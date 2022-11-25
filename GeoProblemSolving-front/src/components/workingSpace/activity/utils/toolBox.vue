@@ -31,25 +31,32 @@
 .toolCard >>> .ivu-card-head {
   padding: 11px 16px;
 }
+.toolCard >>> .ivu-card-body {
+  padding: 0 8px;
+}
 </style>
 <template>
   <div>
     <Card dis-hover class="toolCard" >
       <div slot="title">
-        <h4>Tools</h4>
-      </div>
-      <div
-        slot="extra"
-        v-if="
-          permissionIdentity(activityInfo.permission, userRole, 'manage_tool')
-        "
-      >
+        <span style="font-weight: 700;">Tools</span>
+        <Button
+          shape="circle"
+          size="small"
+          icon="md-refresh"
+          @click="refreshTool"
+          title="Refresh Tool"
+          style=" float:right; margin-top: -5px; margin-right: 15px;"
+        ></Button>
         <manage-tools
+          v-if="
+            permissionIdentity(activityInfo.permission, userRole, 'manage_tool')
+          "
           :activity-info="activityInfo"
           :tool-list="toolList"
           @updateStepTools="stepToolListChanged"
           title="Manage toolsets and tools"
-          style="margin-top: -10px"
+          style="margin-top: -5px;margin-right: 10px;float:right;"
         ></manage-tools>
       </div>
       <div style="display: flex; justify-content: space-between">
@@ -66,11 +73,11 @@
               >*You do not have permission to manage tools.</small
             >
           </div>
-          <vue-scroll :ops="ops" style="max-height: calc(100vh - 700px); padding-top: 5px" v-else>
+          <vue-scroll :ops="ops" style="max-height: calc(50vh - 220px); padding-top: 5px" v-else>
             <Card
               class= "tool-content"
               v-show="toolsetLevel > 0"
-              ><Icon
+            ><Icon
                 type="md-arrow-back"
                 size="70"
                 style="margin-top:5px"
@@ -88,10 +95,10 @@
                 v-if="tool.toolSet"
               >
                 <div
-                  style="padding-top: 5px;text-align: center; cursor: pointer"
+                  style="text-align: center; cursor: pointer"
                   @click="expandTool(tool)"
                 >
-                  <Tooltip placement="bottom" max-width="400" :transfer="true">
+                  <Tooltip placement="bottom" max-width="400" :transfer="true" content=tool.toolName>
                     <img
                       :src="tool.toolImg"
                       v-if="tool.toolImg != ''"
@@ -138,7 +145,7 @@
                 class= "tool-content" v-else
               >
                 <div
-                  style="padding-top: 5px;text-align: center; cursor: pointer"
+                  style="text-align: center; cursor: pointer"
                   @click="useTool(tool)"
                 >
                   <Tooltip placement="bottom" max-width="400" :transfer="true">
@@ -200,6 +207,10 @@
         Note: Jupyter notebooks will be accessed by all members in this project.
       </h3>
     </Modal>
+    <login-modal
+      :tempLoginModal="tempLoginModal"
+      @changeLoginModal="changeLoginModal"
+    ></login-modal>
     <!-- <Modal v-model="openToolModal" title="Open tool">
       <h2>How would you like to open this tool?</h2>
       <small style="color: #ff9900"
@@ -220,11 +231,13 @@
 import manageTools from "@/components/tools/toolToStepModal";
 import Avatar from "vue-avatar";
 import { get, del, post, put } from "@/axios";
+import loginModal from "../../../user/userState/loginModal.vue";
 export default {
   props: ["activityInfo","projectInfo"],
   components: {
     manageTools,
     Avatar,
+    loginModal,
   },
   watch: {
     activityInfo(val) {
@@ -249,8 +262,10 @@ export default {
       jupyterModal: false,
       selectedTool: {},
       operationStore: false,
-      toolSetId: false
+      toolSetId: false,
       // openToolModal: false,
+      //恢复登录的模态框
+      tempLoginModal: false,
     };
   },
   beforeDestroy() {
@@ -326,16 +341,76 @@ export default {
     //       this.$Message.error("Loading project failed.")
     //     })
     // },
+
+    changeLoginModal(status) {
+      this.tempLoginModal = status;
+      console.log(status);
+      //刷新工具
+      if( status == false){
+        this.back2LastLevel();
+      }
+    },
+    refreshTool() {
+      this.toolsetLevel = 0;
+      this.lastLevelList = [];
+
+      //重新获取this.activityInfo.toolList
+      let aid = this.activityInfo.aid;
+      let level = this.activityInfo.level;
+      let url = "";
+      if (level == 0 || level == null) {
+        url = "/GeoProblemSolving/project/" + aid;
+      } else if (level == 1) {
+        url = "/GeoProblemSolving/subproject/" + aid;
+      } else if (level > 1) {
+        url = "/GeoProblemSolving/activity/" + aid;
+      }
+      this.axios
+        .get(url)
+        .then((res) => {
+          console.log(res);
+          if (res.data == "Offline") {
+            this.$store.commit("userLogout");
+            // this.$router.push({ name: "Login" });
+            this.tempLoginModal = true;
+          } else if (res.data.code == 0) {
+            this.toolIdList = res.data.data.toolList;
+            if (this.toolIdList != undefined && this.toolIdList.length !== 0) {
+              this.getToolInfos();
+            }
+          } else {
+            console.log(res.data.msg);
+          }
+        })
+        .catch((err) => {
+          console.log(err.data);
+        });
+    },
+
     getAllTools() {
-      console.log(this.activityInfo);
       this.toolIdList = this.activityInfo.toolList;
       if (this.toolIdList != undefined && this.toolIdList.length !== 0) {
         this.getToolInfos();
       }
     },
     async getToolInfos() {
-      let data = await get("/GeoProblemSolving/tool/all/" + this.toolIdList.toString())
-      this.$set(this, "toolList", data);
+      // let data = await get("/GeoProblemSolving/tool/all/" + this.toolIdList.toString())
+      this.axios
+        .get(
+          "/GeoProblemSolving/tool/all/" +
+            this.toolIdList.toString()
+        )
+        .then((res) => {
+          if (res.data == "Offline") {
+            this.$store.commit("userLogout");
+            // this.$router.push({ name: "Login" });
+            this.tempLoginModal = true;
+          } else {
+            let data = res.data.data;
+            this.$set(this, "toolList", data);
+          }
+        })
+        .catch((err) => {});
     },
     stepToolListChanged(tools, toolsets) {
       this.toolIdList = toolsets;
@@ -379,6 +454,13 @@ export default {
       let routerUrl = toolInfo.toolUrl;
       if (toolInfo.backendType == "webTool") {
         routerUrl = toolInfo.toolUrl;
+        if(toolInfo.toolUrl.indexOf("GeoProblemSolving") == -1 && toolInfo.toolUrl.indexOf("GeoProblemSolving") == -1){
+          if(window.location.host.indexOf("geomodeling") != -1){
+            routerUrl = "/GeoProblemSolving" + toolInfo.toolUrl
+          } else if(window.location.host.indexOf("geofuturelab") != -1){
+            routerUrl = "/GeoProblemSolving" + toolInfo.toolUrl
+          }
+        }
       } else if (toolInfo.backendType == "modelItem") {
         routerUrl = "/GeoProblemSolving/computeModel";
       } else if (toolInfo.backendType == "dataMethod") {
@@ -387,7 +469,8 @@ export default {
 
       var toolContent = `<iframe src="${routerUrl}" id="${toolInfo.tid}" style="width: 100%; height:100%;" frameborder="0"></iframe>`;
 
-      var panel = jsPanel.create({
+      try {
+        var panel = jsPanel.create({
         theme: "success",
         footerToolbar: `<p></p>`,
         contentSize: "800 400",
@@ -411,8 +494,8 @@ export default {
         },
       });
       $(".jsPanel-content").css("font-size", "0");
-      this.panelList.push(panel);
-      this.$emit("toolPanel", panel);
+      this.panelList.push(panel);//
+      this.$emit("toolPanel", panel);//
 
       // 设置iframe 父子页面消息传输处理
       window.addEventListener("message", this.toolMsgHandle, false);
@@ -434,6 +517,12 @@ export default {
           "*"
         );
       };
+      }catch(err) {
+        this.$Notice.info({
+          title: "Wrong url.",
+          desc:"The tool's url is wrong. "
+        });
+      }
     },
 
     toolMsgHandle(event) {
@@ -453,20 +542,20 @@ export default {
                   this.userInfo.userId,
                   operations[i].content
                 );
-                this.$store.commit("updateTempOperations", {
-                  behavior: "add",
-                  operation: operations[i],
-                });
+                // this.$store.commit("updateTempOperations", {
+                //   behavior: "add",
+                //   operation: operations[i],
+                // });
               } else if (behavior === "bind") {
                 this.operationApi.bindTempOperation2Task(
                   this.activityInfo.aid,
                   operations[i].id,
                   event.data.task
                 );
-                this.$store.commit("updateTempOperations", {
-                  behavior: "remove",
-                  operation: operations[i],
-                });
+                // this.$store.commit("updateTempOperations", {
+                //   behavior: "remove",
+                //   operation: operations[i],
+                // });
               }
               break;
             }
@@ -508,10 +597,16 @@ export default {
               behavior: "remove",
               operation: operations[i],
             });
+            this.operationStore = true;
           }
         }
-
-        this.operationStore = true;
+      }else if (event.data.type === "task-record-backend"){
+        this.operationApi.getActivityDoc(this.activityInfo.aid);
+        let operation = this.operationApi.getOperationInfo(event.data.oid);
+        this.$store.commit("updateTempOperations", {
+          behavior: "add",
+          operation: operation,
+        });
       }
     },
     openToolNewpage(toolInfo) {

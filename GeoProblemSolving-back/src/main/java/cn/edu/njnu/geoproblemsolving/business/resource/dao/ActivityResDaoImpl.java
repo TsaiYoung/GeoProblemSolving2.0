@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 
@@ -30,10 +31,25 @@ public class ActivityResDaoImpl implements ActivityResDao {
     }
 
     @Override
+    public Collection<ResourceEntity> addResource(List<ResourceEntity> resList) {
+         return mongoTemplate.insertAll(resList);
+    }
+
+    @Override
     public Long delResource(String uid) {
         Query query = new Query(Criteria.where("uid").is(uid));
         long deleteResult = mongoTemplate.remove(query, ResourceEntity.class).getDeletedCount();
         return deleteResult;
+    }
+
+    @Override
+    public Long delResource(String uid, String aid) {
+        Query query = new Query();
+        Criteria uidCriteria = new Criteria("uid").is(uid);
+        Criteria criteria = new Criteria("activityId").is(aid);
+        query.addCriteria(uidCriteria);
+        query.addCriteria(criteria);
+        return mongoTemplate.remove(query, ResourceEntity.class).getDeletedCount();
     }
 
     @Override

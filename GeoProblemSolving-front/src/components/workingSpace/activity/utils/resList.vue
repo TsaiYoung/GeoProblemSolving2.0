@@ -19,62 +19,99 @@
           title="Back to the parent folder"
           style="color: lightgray; cursor: default"
         />
+        <Button
+          shape="circle"
+          size="small"
+          icon="md-refresh"
+          @click="refreshResource"
+          title="Refresh resources"
+          style="margin-left: 5px"
+        ></Button>
         <Label style="margin-left: 5px">Select:</Label>
         <Select
           v-model="resouceType"
           size="small"
           @on-change="changeResType"
-          style="width: 150px; margin: 5px"
+          style="width: 120px; margin: 5px"
         >
           <Option value="all">All resources</Option>
           <Option value="data">Data</Option>
           <Option value="others">Other resources</Option>
           <!-- <Option value="toolData">Results</Option> -->
         </Select>
+        <Poptip placement="bottom">
+          <Button
+            shape="circle"
+            size="small"
+            icon="md-shuffle"
+            style="margin-right: 7px"
+            title="Get resources"
+          ></Button>
+          <div slot="content" >
+            <Button
+              v-if="
+                permissionIdentity(
+                  activityInfo.permission,
+                  userRole,
+                  'upload_resource'
+                )
+              "
+              @click="shareModalShow()"
+              title="Get resources from your personal space"
+            > Get resources from your personal space</Button><br>
+            <Button
+              v-if="
+                permissionIdentity(
+                  activityInfo.permission,
+                  userRole,
+                  'upload_resource'
+                ) && activityInfo.level > 0
+              "
+              @click="getPreviousRes()"
+              style="margin-top: 7px;"
+              title="Get resources from the previous activities"
+            > Get resources from the previous activities</Button>
+          </div>
+        </Poptip>
         <Button
-          v-if="permissionIdentity(
+          v-if="
+            permissionIdentity(
               activityInfo.permission,
               userRole,
               'upload_resource'
-            )"
+            ) && activityInfo.level > 0
+          "
           shape="circle"
           size="small"
           icon="md-cloud-outline"
-          @click="shareModalShow()"
-          style="margin-right: 10px"
-          title="Get resources from your personal space"
+          @click="shareToParentModalShow()"
+          style="margin-right: 7px"
+          title="Share resources"
         ></Button>
+
         <Button
-          v-if="permissionIdentity(
+          v-if="
+            permissionIdentity(
               activityInfo.permission,
               userRole,
               'upload_resource'
-            )"
-          shape="circle"
-          size="small"
-          icon="md-shuffle"
-          @click="getPreviousRes()"
-          style="margin-right: 10px"
-          title="Get resources from the previous activities"
-        ></Button>
-        <Button
-          v-if="permissionIdentity(
-              activityInfo.permission,
-              userRole,
-              'upload_resource'
-            )"
+            )
+          "
           shape="circle"
           size="small"
           icon="md-cloud-upload"
-          style="margin-right: 10px"
+          style="margin-right: 7px"
           @click="dataUploadModalShow"
           title="Upload resources"
         ></Button>
-        <template v-if="permissionIdentity(
+        <template
+          v-if="
+            permissionIdentity(
               activityInfo.permission,
               userRole,
               'manage_resource'
-            )"
+            )
+          "
         >
           <Button
             v-if="!resEdit"
@@ -95,19 +132,28 @@
           >
           </Button>
         </template>
+
       </div>
       <div style="display: flex; justify-content: space-between">
         <div style="width: 100%">
-          <div style="text-align: center" v-if="fileList.length == 0">
+          <div style="text-align: center; margin: 70px 0;" v-if="fileList.length == 0">
             <h2 style="color: #808695">No resource</h2>
-            <small style="color: #dcdee2" v-if="permissionIdentity( activityInfo.permission,userRole,'upload_resource' )"
+            <small
+              style="color: #dcdee2"
+              v-if="
+                permissionIdentity(
+                  activityInfo.permission,
+                  userRole,
+                  'upload_resource'
+                )
+              "
               >*Click the button to add resource.</small
             >
             <small style="color: #dcdee2" v-else
               >*You do not have permission to manage resource.</small
             >
           </div>
-          <vue-scroll :ops="ops" style="max-height: calc(100vh - 700px)" v-else>
+          <vue-scroll :ops="ops" style="max-height: calc(50vh - 220px)" v-else>
             <Card class="res-content"
               ><Icon
                 type="ios-add"
@@ -116,7 +162,10 @@
                 @click="addFolderModalShow"
             /></Card>
             <div v-for="(item, index) in fileList" :key="index">
-              <Card class="res-content" v-if="!resEdit && item.fromParents == undefined">
+              <Card
+                class="res-content"
+                v-if="!resEdit && item.fromParents == undefined"
+              >
                 <div
                   class="res-content-image"
                   v-if="item.folder"
@@ -161,7 +210,10 @@
                   </div>
                 </div>
               </Card>
-              <Card class="res-content-parents" v-else-if="!resEdit && item.fromParents != undefined">
+              <Card
+                class="res-content-parents"
+                v-else-if="!resEdit && item.fromParents != undefined"
+              >
                 <div
                   class="res-content-image"
                   v-if="item.folder"
@@ -174,7 +226,12 @@
                     title="Folder"
                   />
                 </div>
-                <div class="res-content-image" @click="checkData(item)" :title="item.fromParents" v-else>
+                <div
+                  class="res-content-image"
+                  @click="checkData(item)"
+                  :title="item.fromParents"
+                  v-else
+                >
                   <template
                     v-if="item.thumbnail == '' || item.thumbnail == undefined"
                   >
@@ -206,7 +263,7 @@
                   </div>
                 </div>
               </Card>
-              <Card class="res-content-edit" v-else>
+              <Card class="res-content-edit" v-else-if="resEdit && item.fromParents == undefined">
                 <div
                   class="res-content-image"
                   v-if="item.folder"
@@ -259,6 +316,59 @@
                   </div>
                 </div>
               </Card>
+              <Card
+                class="res-content-parents"
+                v-else
+              >
+                <div
+                  class="res-content-image"
+                  v-if="item.folder"
+                  @click="enterFolder(item)"
+                >
+                  <img
+                    :src="folderUrl"
+                    height="42px"
+                    width="42px"
+                    title="Folder"
+                  />
+                </div>
+                <div
+                  class="res-content-image"
+                  @click="checkData(item)"
+                  :title="item.fromParents"
+                  v-else
+                >
+                  <template
+                    v-if="item.thumbnail == '' || item.thumbnail == undefined"
+                  >
+                    <img
+                      :src="getImageUrl(item.type)"
+                      height="42px"
+                      width="42px"
+                      :title="item.type + ' | ' + item.fromParents"
+                    />
+                  </template>
+                  <template v-else>
+                    <img :src="item.thumbnail" height="42px" width="42px" />
+                  </template>
+                </div>
+                <div>
+                  <div
+                    class="toolDataText"
+                    :title="item.name"
+                    v-if="item.folder"
+                  >
+                    {{ item.name }}
+                  </div>
+                  <div
+                    class="toolDataText"
+                    :title="item.name + item.suffix"
+                    v-else
+                  >
+                    {{ item.name + item.suffix }}
+                  </div>
+                </div>
+              </Card>
             </div>
           </vue-scroll>
         </div>
@@ -272,6 +382,12 @@
     >
       <div>
         <vue-scroll :ops="ops" style="height: 300px">
+          <Card dis-hover v-if="userResourceList.length == 0" style="text-align: center; border: transparent; margin-top: 70px">
+            <h2 style="color: #808695">No Resource</h2>
+            <small style="color: #dcdee2"
+              >*You do not have any personal resource.</small
+            >
+          </Card>
           <CheckboxGroup v-model="selectedFilesToShare">
             <Card dis-hover v-for="file in userResourceList" :key="file.index">
               <Checkbox
@@ -280,20 +396,52 @@
                 :title="file.name"
                 v-if="canBeShare(file.uid)"
               >
-                <Icon v-if="file.type === 'data'" type="ios-podium-outline" class="itemIcon" size="25"/>
-                <Icon v-else-if="file.type === 'image'" type="ios-image-outline" class="itemIcon" size="25"/>
-                <Icon v-else-if="file.type === 'paper'" type="ios-paper-outline" class="itemIcon" size="25"/>
-                <Icon v-else-if="file.type === 'document'" type="ios-document-outline" class="itemIcon" size="25"/>
-                <Icon v-else-if="file.type === 'model'" type="ios-construct-outline" class="itemIcon" size="25"/>
-                <Icon v-else-if="file.type === 'video'" type="ios-videocam-outline" class="itemIcon" size="25"/>
-                <p style="
-                  display: inline-block;
-                  vertical-align: top;
-                  width: 100px;
-                  overflow: hidden;
-                  white-space: nowrap;
-                  text-overflow: ellipsis;
-                ">
+                <Icon
+                  v-if="file.type === 'data'"
+                  type="ios-podium-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'image'"
+                  type="ios-image-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'paper'"
+                  type="ios-paper-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'document'"
+                  type="ios-document-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'model'"
+                  type="ios-construct-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'video'"
+                  type="ios-videocam-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <p
+                  style="
+                    display: inline-block;
+                    vertical-align: top;
+                    width: 100px;
+                    overflow: hidden;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                  "
+                >
                   <strong>{{ file.name }}</strong>
                 </p>
                 <!-- <span ><strong>{{ file.name }}</strong></span> -->
@@ -305,34 +453,69 @@
                 disabled
                 v-else
               >
-                <Icon v-if="file.type === 'data'" type="ios-podium-outline" class="itemIcon" size="25"/>
-                <Icon v-else-if="file.type === 'image'" type="ios-image-outline" class="itemIcon" size="25"/>
-                <Icon v-else-if="file.type === 'paper'" type="ios-paper-outline" class="itemIcon" size="25"/>
-                <Icon v-else-if="file.type === 'document'" type="ios-document-outline" class="itemIcon" size="25"/>
-                <Icon v-else-if="file.type === 'model'" type="ios-construct-outline" class="itemIcon" size="25"/>
-                <Icon v-else-if="file.type === 'video'" type="ios-videocam-outline" class="itemIcon" size="25"/>
-                <p style="
-                  display: inline-block;
-                  vertical-align: top;
-                  width: 100px;
-                  overflow: hidden;
-                  white-space: nowrap;
-                  text-overflow: ellipsis;
-                ">
+                <Icon
+                  v-if="file.type === 'data'"
+                  type="ios-podium-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'image'"
+                  type="ios-image-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'paper'"
+                  type="ios-paper-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'document'"
+                  type="ios-document-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'model'"
+                  type="ios-construct-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'video'"
+                  type="ios-videocam-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <p
+                  style="
+                    display: inline-block;
+                    vertical-align: top;
+                    width: 100px;
+                    overflow: hidden;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                  "
+                >
                   <strong>{{ file.name }}</strong>
                 </p>
                 <!-- <strong>{{ file.name }}</strong> -->
               </Checkbox>
-              <p :title="file.description" style="
+              <p
+                :title="file.description"
+                style="
                   display: inline-block;
                   vertical-align: top;
                   width: 200px;
                   overflow: hidden;
                   white-space: nowrap;
                   text-overflow: ellipsis;
-                  margin-left:50px;
-                ">
-                  {{ file.description }}
+                  margin-left: 50px;
+                "
+              >
+                {{ file.description }}
               </p>
               <!-- <span
                 class="personalFileDes"
@@ -340,9 +523,10 @@
                 :title="file.description"
                 >{{ file.description }}</span
               > -->
-              <span style="display: inline-block; vertical-align: top;float:right;">{{
-                file.fileSize | filterSizeType
-              }}</span>
+              <span
+                style="display: inline-block; vertical-align: top; float: right"
+                >{{ file.fileSize | filterSizeType }}</span
+              >
             </Card>
           </CheckboxGroup>
         </vue-scroll>
@@ -353,6 +537,143 @@
         </Button>
         <Button
           @click="shareModal = false"
+          style="float: right; margin-right: 15px"
+          >Cancel
+        </Button>
+      </div>
+    </Modal>
+    <Modal
+      v-model="shareToParentModal"
+      title="Share files to parent activity"
+      width="600"
+      :mask-closable="false"
+    >
+      <div>
+        <vue-scroll :ops="ops" style="height: 300px">
+          <Card dis-hover v-if="fileListChoosed.length == 0" style="text-align: center; border: transparent; margin-top: 70px">
+            <h2 style="color: #808695;">No Resource</h2>
+            <small style="color: #dcdee2"
+              >*You do not have any resource.</small
+            >
+          </Card>
+          <CheckboxGroup v-model="selctResToShare">
+            <Card dis-hover v-for="file in fileListChoosed" :key="file.index">
+              <Checkbox
+                :label="file.uid"
+                class="personalFileLabel"
+                :title="file.name"
+                v-if="!file.folder && !file.fromParents"
+              >
+                <Icon
+                  v-if="file.type === 'data'"
+                  type="ios-podium-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'image'"
+                  type="ios-image-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'paper'"
+                  type="ios-paper-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'document'"
+                  type="ios-document-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'model'"
+                  type="ios-construct-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <Icon
+                  v-else-if="file.type === 'video'"
+                  type="ios-videocam-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <p
+                  style="
+                    display: inline-block;
+                    vertical-align: top;
+                    width: 100px;
+                    overflow: hidden;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                  "
+                >
+                  <strong>{{ file.name }}</strong>
+                </p>
+                <!-- <span ><strong>{{ file.name }}</strong></span> -->
+              </Checkbox>
+              <Checkbox
+                :label="file.uid"
+                class="personalFileLabel"
+                :title="file.name"
+                v-else-if="!file.fromParents"
+              >
+                <Icon
+                  type="ios-folder-open-outline"
+                  class="itemIcon"
+                  size="25"
+                />
+                <p
+                  style="
+                    display: inline-block;
+                    vertical-align: top;
+                    width: 100px;
+                    overflow: hidden;
+                    white-space: nowrap;
+                    text-overflow: ellipsis;
+                  "
+                >
+                  <strong>{{ file.name }}</strong>
+                </p>
+              </Checkbox>
+              <p
+                :title="file.description"
+                style="
+                  display: inline-block;
+                  vertical-align: top;
+                  width: 200px;
+                  overflow: hidden;
+                  white-space: nowrap;
+                  text-overflow: ellipsis;
+                  margin-left: 50px;
+                "
+                v-if=" !file.fromParents"
+              >
+                {{ file.description }}
+              </p>
+              <!-- <span
+                class="personalFileDes"
+                style="width: 150px;margin-left:50px"
+                :title="file.description"
+                >{{ file.description }}</span
+              > -->
+              <span
+                style="display: inline-block; vertical-align: top; float: right" v-if="!file.folder && !file.fromParents"
+                >{{ file.fileSize | filterSizeType }}</span
+              >
+            </Card>
+          </CheckboxGroup>
+        </vue-scroll>
+      </div>
+
+      <div slot="footer" style="display: inline-block">
+        <Button type="primary" @click="shareToParent()" style="float: right"
+          >Submit
+        </Button>
+        <Button
+          @click="shareToParentModal = false"
           style="float: right; margin-right: 15px"
           >Cancel
         </Button>
@@ -386,13 +707,21 @@
         </Button>
       </div>
     </Modal>
-    <Modal v-model="editFileModel" title="Edit file information">
+    <Modal v-model="editFileModel" title="Edit file information" width="600">
       <Form
         ref="editFileValidate"
         :model="editFileValidate"
         :rules="editFileRuleValidate"
-        :label-width="80"
+        label-position="left"
+        :label-width="100"
+        inline
       >
+        <FormItem label="Privacy" prop="privacy">
+          <RadioGroup v-model="editFileValidate.privacy">
+            <Radio label="private">Private</Radio>
+            <Radio label="public">Public</Radio>
+          </RadioGroup>
+        </FormItem>
         <FormItem label="Type" prop="type">
           <RadioGroup v-model="editFileValidate.type">
             <Radio label="data"></Radio>
@@ -404,18 +733,53 @@
             <Radio label="others"></Radio>
           </RadioGroup>
         </FormItem>
-        <FormItem label="Name" prop="name">
+        <FormItem label="Name" prop="name" style="width: 100%">
           <Input
             v-model="editFileValidate.name"
-            :rows="4"
             placeholder="Enter the name for file..."
           />
         </FormItem>
-        <FormItem label="Description" prop="description">
+        <FormItem label="Description" prop="description" style="width: 100%">
           <Input
             type="textarea"
-            :rows="4"
+            :rows="3"
             v-model="editFileValidate.description"
+          />
+        </FormItem>
+        <Divider orientation="left" v-if="editFileValidate.type == 'data'">Metadata</Divider>
+        <FormItem label="Format" prop="format" v-if="editFileValidate.type == 'data'" :label-width="70">
+          <Input
+            type="text"
+            style="width:200px;"
+            v-model="editFileValidate.format"
+          />
+        </FormItem>
+        <FormItem label="Scale" prop="scale" v-if="editFileValidate.type == 'data'" :label-width="50">
+          <Input
+            type="text"
+            style="width:200px;"
+            v-model="editFileValidate.scale"
+          />
+        </FormItem>
+        <FormItem label="Reference" prop="reference" v-if="editFileValidate.type == 'data'" :label-width="70">
+          <Input
+            type="text"
+            style="width:200px;"
+            v-model="editFileValidate.reference"
+          />
+        </FormItem>
+        <FormItem label="Unit" prop="unit" v-if="editFileValidate.type == 'data'" :label-width="50">
+          <Input
+            type="text"
+            style="width:200px;"
+            v-model="editFileValidate.unit"
+          />
+        </FormItem>
+        <FormItem label="Concept" prop="concept" v-if="editFileValidate.type == 'data'" :label-width="70">
+          <Input
+            type="text"
+            style="width:200px;"
+            v-model="editFileValidate.concept"
           />
         </FormItem>
       </Form>
@@ -470,7 +834,9 @@
         </div>
         <div class="dataInfo">
           <Label class="dataLabel">File size:</Label>
-          <span class="dataContent">{{ selectData.fileSize | filterSizeType }}</span>
+          <span class="dataContent">{{
+            selectData.fileSize | filterSizeType
+          }}</span>
           <Label class="dataLabel">Created time:</Label>
           <span class="dataContent">{{
             dateFormat(selectData.uploadTime)
@@ -479,6 +845,10 @@
         <div class="dataInfo">
           <Label class="dataLabel">Description:</Label>
           <span class="dataText">{{ selectData.description }}</span>
+        </div>
+        <div class="dataInfo" v-if="selectData.fromParents != undefined">
+          <Label class="dataLabel">Source:</Label>
+          <span class="dataText">{{ selectData.fromParents }}</span>
         </div>
       </div>
       <!-- </TabPane>
@@ -490,15 +860,16 @@
       <br />
       <div>
         <a
-          :href="selectData.address"
+          :href="resProxy + '/data/' + resId"
           :download="selectData.name + selectData.suffix"
-            v-if="
-              permissionIdentity(
-                activityInfo.permission,
-                userRole,
-                'use_resource'
-              )
-            "
+          target="_self"
+          v-if="
+            permissionIdentity(
+              activityInfo.permission,
+              userRole,
+              'use_resource'
+            )
+          "
         >
           <Button
             type="info"
@@ -509,8 +880,17 @@
           ></Button>
         </a>
         <Button
+          type="success"
+          size="small"
+          title="Preview"
+          icon="md-eye"
+          style="margin: 10px 20px 0 0; cursor: pointer; width: 60px"
+          @click="preview(selectData)"
+        ></Button>
+        <Button
           v-if="
-            permissionIdentity(
+            selectData.fromParents == undefined &&
+            (permissionIdentity(
               activityInfo.permission,
               userRole,
               'manage_resource'
@@ -520,7 +900,7 @@
               userRole,
               'upload_resource'
             ) &&
-              selectData.uploaderId == userInfo.userId)
+              selectData.uploaderId == userInfo.userId))
           "
           size="small"
           type="warning"
@@ -530,8 +910,6 @@
           @click="deleteResourceModalShow(selectData)"
         ></Button>
       </div>
-      <!-- <Button style="margin-right:20px" @click="dataPreview(selectData)">Preview</Button>
-      <Button style="margin-right:20px" @click="dataVisualize">Visualization</Button>-->
     </Modal>
     <Modal
       width="800px"
@@ -564,9 +942,10 @@
         :rules="uploadDataRule"
         :label-width="100"
         label-position="left"
+        inline
       >
-        <FormItem label="Privacy" prop="privacy">
-          <RadioGroup v-model="uploadDataInfo.privacy" style="width: 80%">
+        <FormItem label="Privacy" prop="privacy" >
+          <RadioGroup v-model="uploadDataInfo.privacy" style="width: 100%">
             <Radio label="private">Private</Radio>
             <Radio label="public">Public</Radio>
           </RadioGroup>
@@ -582,11 +961,47 @@
             <Radio label="others"></Radio>
           </RadioGroup>
         </FormItem>
-        <FormItem label="Description" prop="description">
+        <FormItem label="Description" prop="description" style="width: 100%">
           <Input
             type="textarea"
-            :rows="4"
+            :rows="3"
             v-model="uploadDataInfo.description"
+          />
+        </FormItem>
+        <Divider orientation="left" v-if="uploadDataInfo.type == 'data'">Metadata</Divider>
+        <FormItem label="Format" prop="format" v-if="uploadDataInfo.type == 'data'" :label-width="70">
+          <Input
+            type="text"
+            style="width:200px;"
+            v-model="uploadDataInfo.format"
+          />
+        </FormItem>
+        <FormItem label="Scale" prop="scale" v-if="uploadDataInfo.type == 'data'" :label-width="50">
+          <Input
+            type="text"
+            style="width:200px;"
+            v-model="uploadDataInfo.scale"
+          />
+        </FormItem>
+        <FormItem label="Reference" prop="reference" v-if="uploadDataInfo.type == 'data'" :label-width="70">
+          <Input
+            type="text"
+            style="width:200px;"
+            v-model="uploadDataInfo.reference"
+          />
+        </FormItem>
+        <FormItem label="Unit" prop="unit" v-if="uploadDataInfo.type == 'data'" :label-width="50">
+          <Input
+            type="text"
+            style="width:200px;"
+            v-model="uploadDataInfo.unit"
+          />
+        </FormItem>
+        <FormItem label="Concept" prop="concept" v-if="uploadDataInfo.type == 'data'" :label-width="70">
+          <Input
+            type="text"
+            style="width:200px;"
+            v-model="uploadDataInfo.concept"
           />
         </FormItem>
       </Form>
@@ -645,12 +1060,15 @@
     >
       <h3>Do you really want to delete this resource?</h3>
     </Modal>
-    <login-modal :tempLoginModal="tempLoginModal" @changeLoginModal="changeLoginModal"></login-modal>
+    <login-modal
+      :tempLoginModal="tempLoginModal"
+      @changeLoginModal="changeLoginModal"
+    ></login-modal>
   </div>
 </template>
 <script>
 import Avatar from "vue-avatar";
-import loginModal from "../../../user/userState/loginModal.vue"
+import loginModal from "../../../user/userState/loginModal.vue";
 export default {
   props: ["activityInfo"],
   components: {
@@ -709,6 +1127,11 @@ export default {
         privacy: "private",
         type: "data",
         description: "",
+        format: "",
+        scale: "",
+        reference: "",
+        unit: "",
+        concept: "",
       },
       uploadDataRule: {
         privacy: [
@@ -787,16 +1210,26 @@ export default {
       deleteResource: {},
       // 共享
       shareModal: false,
+      shareToParentModal: false,
+      fileListChoosed: [],
+      selctResToShare: [],
       userResourceList: [],
       selectedFilesToShare: [],
       //编辑
+      oldType: '',
       resEdit: false,
       editFileModel: false,
+      oldMetadata: {},
       selectFileInfo: {},
       editFileValidate: {
         name: "",
         type: "",
         description: "",
+        format: "",
+        scale: "",
+        reference: "",
+        unit: "",
+        concept: "",
       },
       editFileRuleValidate: {
         type: [
@@ -837,7 +1270,23 @@ export default {
       },
       // panel
       panel: null,
+      resProxy: this.$store.getters.resProxy,
     };
+  },
+  computed: {
+    resId: function () {
+      let address = this.selectData.address;
+      if (address != "" && typeof(address) == "string"){
+        if (address.length == 36){
+          return address;
+        }else {
+          let uidArr = address.split("data/");
+          if (uidArr instanceof Array && uidArr.length > 1){
+            return uidArr[1];
+          }
+        }
+      }
+    }
   },
   watch: {
     checkDataModal(value) {
@@ -905,7 +1354,7 @@ export default {
         );
       }
     },
-    changeLoginModal(status){
+    changeLoginModal(status) {
       this.tempLoginModal = status;
     },
     dateFormat(date) {
@@ -946,22 +1395,23 @@ export default {
       }
       return url;
     },
-    getParentActivities(){
+    getParentActivities() {
       this.parentActivitiesID = [];
       this.parentActivitiesName = [];
-      if (this.activityInfo.aid != "" && this.activityInfo.aid != undefined){
+      if (this.activityInfo.level > 0 && this.activityInfo.aid != "" && this.activityInfo.aid != undefined) {
         let url = "";
         let aid = this.activityInfo.aid;
-        if(this.activityInfo.level == 1){
+        if (this.activityInfo.level == 1) {
           url = "/GeoProblemSolving/subproject/" + aid + "/lineage";
-        } else if (this.activityInfo.level > 1){
+        } else if (this.activityInfo.level > 1) {
           url = "/GeoProblemSolving/activity/" + aid + "/lineage";
         }
-        this.$axios.get(url)
+        this.$axios
+          .get(url)
           .then((res) => {
             if (res.data.code == 0) {
               let list = res.data.data.ancestors;
-              for(let i = 1 ; i < list.length ; i++){
+              for (let i = 1; i < list.length; i++) {
                 this.parentActivitiesID.push(list[i].aid);
                 this.parentActivitiesName.push("From " + list[i].name);
               }
@@ -975,20 +1425,32 @@ export default {
           });
       }
     },
-    getParentActivitiesFile(){
-      if(this.parentActivitiesID != undefined && this.parentActivitiesID.length > 0){
-        this.$axios.get("/GeoProblemSolving/rip/file/" + this.parentActivitiesID.toString())
-        .then((res) => {
+    getParentActivitiesFile() {
+      if (
+        this.parentActivitiesID != undefined &&
+        this.parentActivitiesID.length > 0
+      ) {
+        this.$axios
+          .get(
+            "/GeoProblemSolving/rip/file/" + this.parentActivitiesID.toString()
+          )
+          .then((res) => {
             if (res.data.code == 0) {
               let parentsFilesList = res.data.data;
               let fileList = JSON.parse(JSON.stringify(this.fileList));
-              for(let i = 0 ; i < this.parentActivitiesID.length ; i++){
-                for(let j = 0 ; j < parentsFilesList[this.parentActivitiesID[i]].length ; j++){
-                  parentsFilesList[this.parentActivitiesID[i]][j].fromParents = this.parentActivitiesName[i];
-                  fileList.push(parentsFilesList[this.parentActivitiesID[i]][j]);
+              for (let i = 0; i < this.parentActivitiesID.length; i++) {
+                for (
+                  let j = 0;
+                  j < parentsFilesList[this.parentActivitiesID[i]].length;
+                  j++
+                ) {
+                  parentsFilesList[this.parentActivitiesID[i]][j].fromParents =
+                    this.parentActivitiesName[i];
+                  fileList.push(
+                    parentsFilesList[this.parentActivitiesID[i]][j]
+                  );
                 }
               }
-              console.log(fileList);
               this.$set(this, "activityResList", fileList);
               this.filterData();
               this.filterRelatedRes();
@@ -996,7 +1458,6 @@ export default {
 
               // show resources
               this.$set(this, "fileList", fileList);
-
             } else {
               console.log(res.data.msg);
             }
@@ -1024,6 +1485,12 @@ export default {
             throw err;
           });
       }
+    },
+    refreshResource(){
+      this.folderStack = [{ uid: 0, name: "Home" }], //folder level
+      this.folderIdStack = [], // folder level
+      this.getResList();
+      this.getParentActivities();
     },
     filterData() {
       var filterdata = this.activityResList.filter((item) => {
@@ -1087,6 +1554,11 @@ export default {
         privacy: "private",
         type: "data",
         description: "",
+        format: "",
+        scale: "",
+        reference: "",
+        unit: "",
+        concept: "",
       };
       this.dataUploadModal = true;
     },
@@ -1109,6 +1581,14 @@ export default {
             formData.append("privacy", this.uploadDataInfo.privacy);
             formData.append("aid", this.activityInfo.aid);
             formData.append("paths", temp.toString());
+            formData.append("graphId", this.activityInfo.parent);
+            if(this.uploadDataInfo.type == "data"){
+              formData.append("format", this.uploadDataInfo.format);
+              formData.append("scale", this.uploadDataInfo.scale);
+              formData.append("reference", this.uploadDataInfo.reference);
+              formData.append("unit", this.uploadDataInfo.unit);
+              formData.append("concept", this.uploadDataInfo.concept);
+            }
             this.progressModalShow = true;
 
             if (
@@ -1129,24 +1609,36 @@ export default {
                     var uploadedList = res.data.uploaded;
                     var failedList = res.data.failed;
                     var sizeOverList = res.data.sizeOver;
+                    let uploadedOperation = res.data.uploadedOperation;
+                    let metadata = {};
 
                     for (var i = 0; i < uploadedList.length; i++) {
                       this.activityResList.push(uploadedList[i]);
                       if (this.uploadDataInfo.type == "data") {
                         this.activityDataList.push(uploadedList[i]);
+                        // metadata.format = this.uploadDataInfo.format;
+                        // metadata.scale = this.uploadDataInfo.scale;
+                        // metadata.reference = this.uploadDataInfo.reference;
+                        // metadata.unit = this.uploadDataInfo.unit;
+                        // metadata.concept = this.uploadDataInfo.concept;
                       } else {
                         this.relatedResList.push(uploadedList[i]);
                       }
-
-                      this.operationApi.resOperationRecord(
-                        this.activityInfo.aid,
-                        "",
-                        "",
-                        "upload",
-                        this.userInfo.userId,
-                        uploadedList[i]
-                      );
                     }
+                    this.operationApi.getActivityDoc(this.activityInfo.aid);
+                    for (let i = 0; i < uploadedOperation.length; i++){
+                      let resOperation = {
+                        id: uploadedOperation[i].oid,
+                        type: "resource",
+                        resRef: uploadedOperation[i].resRef,
+                        operator: this.userInfo.userId,
+                      };
+                      this.$store.commit("updateTempOperations", {
+                        behavior: "add",
+                        operation: resOperation,
+                      });
+                    }
+
                     if (sizeOverList.length > 0) {
                       this.$Notice.warning({
                         title: "Files too large.",
@@ -1163,12 +1655,25 @@ export default {
                         },
                       });
                     }
+                    if (uploadedList.length > 0){
+                      let sucFileName = uploadedList.map((item)=>{
+                        return item.name + item.suffix;
+                      });
+                      this.$Notice.success({
+                        title: "Upload result",
+                        desc: "Upload successfully",
+                        render: (h) =>{
+                          return h("span", sucFileName.join(";"));
+                        }
+                      });
+                    }
 
                     // 初始化上传数据列表
                     this.toUploadFiles = [];
                   } else {
                     this.$Message.warning("Upload fail.");
                   }
+
                   this.progressModalShow = false;
                   this.uploadProgress = 0;
                 })
@@ -1187,6 +1692,155 @@ export default {
           }
         }
       });
+    },
+    preview(data){
+      this.checkDataModal = false;
+      var res = data;
+      let name = data.suffix;
+      if (/(doc|docx|xls|xlsx|ppt|pptx|xml|json|md|gif|jpg|png|jpeg|pdf|txt)$/.test(name.toLowerCase())) {
+        // if (this.panel != null) {
+        //   this.panel.close();
+        // }
+        let url = "";
+        if(res.address.indexOf("http://221.226.60.2:8082") != -1){
+          url = this.$store.getters.resProxy + res.address.split("http://221.226.60.2:8082")[1];
+        } else if(res.address.indexOf("/GeoProblemSolving/resource") != -1){
+          url = "https://geomodeling.njnu.edu.cn" + res.address;
+        } else {
+          url = this.$store.getters.resProxy + res.address;
+        }
+        let Base64 = require('js-base64').Base64;
+        // let finalUrl = "http://221.226.60.2:8082/onlinePreview?url=" + Base64.encode(url); // http
+        let finalUrl = "https://geomodeling.njnu.edu.cn/dataTransferServer/onlinePreview?url=" + encodeURIComponent(Base64.encode(url)); // https
+        var toolURL =
+          "<iframe src=" +
+          finalUrl +
+          ' style="width: 100%;height:100%" frameborder="0"></iframe>';
+        this.panel = jsPanel.create({
+          headerControls: {
+            smallify: "remove"
+          },
+          theme: "primary",
+          footerToolbar: '<p style="height:5px"></p>',
+          headerTitle: "Preview",
+          contentSize: "800 600",
+          content: toolURL,
+          disableOnMaximized: true,
+          dragit: {
+            containment: 5
+          },
+          closeOnEscape: true,
+        });
+        $(".jsPanel-content").css("font-size", "0");
+
+      } else if (/(mp4)$/.test(name.toLowerCase())) {
+        if (this.panel != null) {
+          this.panel.close();
+        }
+        var url = res.address;
+        var toolURL =
+          "<video src=" +
+          url +
+          ' style="width: 100%;height:100%" controls></video>';
+        this.panel = jsPanel.create({
+          headerControls: {
+            smallify: "remove"
+          },
+          theme: "primary",
+          footerToolbar: '<p style="height:10px"></p>',
+          headerTitle: "Preview",
+          contentSize: "800 600",
+          content: toolURL,
+          disableOnMaximized: true,
+          dragit: {
+            containment: 5
+          },
+          closeOnEscape: true
+        });
+        $(".jsPanel-content").css("font-size", "0");
+      }  else {
+        this.$Notice.error({
+          title: "Open failed",
+          desc: "Not supported file format."
+        });
+        return false;
+      }
+      // else if (/(pdf)$/.test(name.toLowerCase())) {
+      //   if (this.panel != null) {
+      //     this.panel.close();
+      //   }
+      //   let url = "";
+      //   if(res.address.indexOf("http://221.226.60.2:8082") != -1){
+      //     url = this.$store.getters.resProxy + res.address.split("http://221.226.60.2:8082")[1];
+      //   } else {
+      //     url = this.$store.getters.resProxy + res.address;
+      //   }
+      //   console.log(url);
+
+      //   let that = this;
+      //   var xhr = new XMLHttpRequest();
+      //   xhr.open("GET", url, true);
+      //   xhr.setRequestHeader(
+      //     'Content-Type',
+      //     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      //   );
+      //   xhr.responseType = 'blob';
+      //   this.showLoading = true;
+      //   xhr.onload = function (e) {
+      //     if (this.status == 200) {
+      //       let changeUrl = ''
+      //       let file = new Blob([this.response], { type: 'application/pdf' })
+      //       if (window.createObjectURL !== undefined) { // basic
+      //         changeUrl = window.createObjectURL(file)
+      //       } else if (window.webkitURL !== undefined) { // webkit or chrome
+      //         try {
+      //           changeUrl = window.webkitURL.createObjectURL(file)
+      //         } catch (error) {
+
+      //         }
+      //       } else if (window.URL !== undefined) { // Mozilla (firefox)
+      //         try {
+      //           changeUrl = window.URL.createObjectURL(file)
+      //         } catch (error) {
+      //           console.log(error)
+      //         }
+      //       }
+      //       console.log(file);
+      //       console.log(changeUrl);
+      //       var toolURL =
+      //         "<iframe src=" +
+      //         changeUrl +
+      //         ' style="width: 100%;height:100%" frameborder="0" controls></iframe>';
+      //       this.panel = jsPanel.create({
+      //         headerControls: {
+      //           smallify: "remove"
+      //         },
+      //         theme: "primary",
+      //         footerToolbar: '<p style="height:10px"></p>',
+      //         headerTitle: "Preview",
+      //         contentSize: "800 600",
+      //         content: toolURL,
+      //         disableOnMaximized: true,
+      //         dragit: {
+      //           containment: 5
+      //         },
+      //         closeOnEscape: true
+      //       });
+      //       $(".jsPanel-content").css("font-size", "0");
+      //     }
+      //   };
+      //   xhr.onreadystatechange = function() {
+      //     if (xhr.readyState == 4) {
+      //       if (xhr.status == 200) {
+      //           that.showLoading = false;
+      //       } else {
+      //           //请求失败
+      //       }
+      //     }
+      //   }
+      //   xhr.send();
+
+      // }
     },
     deleteResourceModalShow(resource) {
       this.deleteResourceModal = true;
@@ -1215,7 +1869,7 @@ export default {
                 desc: "Delete successfully",
               });
 
-              this.operationApi.resOperationRecord(
+              let operationId = this.operationApi.resOperationRecord(
                 this.activityInfo.aid,
                 "",
                 "",
@@ -1223,6 +1877,19 @@ export default {
                 this.userInfo.userId,
                 this.deleteResource
               );
+
+              // 生成临时操作记录
+              let resOperation = {
+                id: operationId,
+                type: "resource",
+                resRef: this.deleteResource.uid,
+                operator: this.userInfo.userId,
+              };
+
+              this.$store.commit("updateTempOperations", {
+                behavior: "add",
+                operation: resOperation,
+              });
 
               //从列表中删除
               for (var i = 0; i < this.activityResList.length; i++) {
@@ -1262,122 +1929,6 @@ export default {
         this.metaDataEdit = true;
       }
     },
-    dataPreview(res) {
-      let name = res.name;
-      if (/\.(doc|docx|xls|xlsx|ppt|pptx)$/.test(name.toLowerCase())) {
-        this.$Modal.confirm({
-          title: "Note",
-          content:
-            "<p>You selected file will be previewed through</p><p style='font-size:16px;font-weight:bold'>Microsoft office online service</p>",
-          onOk: () => {
-            if (this.panel != null) {
-              this.panel.close();
-            }
-            let url =
-              "http://view.officeapps.live.com/op/view.aspx?src=" + res.address;
-            let toolURL =
-              "<iframe src=" +
-              url +
-              ' style="width: 100%;height:100%" frameborder="0"></iframe>';
-            // var demoPanelTimer = null;
-            this.panel = jsPanel.create({
-              headerControls: {
-                smallify: "remove",
-              },
-              theme: "primary",
-              footerToolbar: '<p style="height:5px"></p>',
-              headerTitle: "Preview",
-              contentSize: "800 600",
-              content: toolURL,
-              disableOnMaximized: true,
-              dragit: {
-                containment: 5,
-              },
-              closeOnEscape: true,
-              // callback: function() {
-              //   var that = this;
-              //   demoPanelTimer = window.setInterval(function() {
-              //     that.style.zIndex = "9999";
-              //   }, 1);
-              // }
-            });
-            $(".jsPanel-content").css("font-size", "0");
-          },
-          onCancel: () => {
-            return;
-          },
-        });
-      } else if (/\.(mp4)$/.test(name.toLowerCase())) {
-        if (this.panel != null) {
-          this.panel.close();
-        }
-        var toolURL =
-          "<video src=" +
-          res.address +
-          ' style="width: 100%;height:100%" controls></video>';
-        // var demoPanelTimer = null;
-        this.panel = jsPanel.create({
-          headerControls: {
-            smallify: "remove",
-          },
-          theme: "primary",
-          footerToolbar: '<p style="height:10px"></p>',
-          headerTitle: "Preview",
-          contentSize: "800 600",
-          content: toolURL,
-          disableOnMaximized: true,
-          dragit: {
-            containment: 5,
-          },
-          closeOnEscape: true,
-          // callback: function() {
-          //   var that = this;
-          //   demoPanelTimer = window.setInterval(function() {
-          //     that.style.zIndex = "9999";
-          //   }, 1);
-          // }
-        });
-        $(".jsPanel-content").css("font-size", "0");
-      } else if (/\.(pdf|json|md|gif|jpg|png)$/.test(name.toLowerCase())) {
-        if (this.panel != null) {
-          this.panel.close();
-        }
-        var toolURL =
-          "<iframe src=" +
-          res.address +
-          ' style="width: 100%;height:100%" frameborder="0" controls></iframe>';
-        // var demoPanelTimer = null;
-        this.panel = jsPanel.create({
-          headerControls: {
-            smallify: "remove",
-          },
-          theme: "primary",
-          footerToolbar: '<p style="height:10px"></p>',
-          headerTitle: "Preview",
-          contentSize: "800 600",
-          content: toolURL,
-          disableOnMaximized: true,
-          dragit: {
-            containment: 5,
-          },
-          closeOnEscape: true,
-          // callback: function() {
-          //   var that = this;
-          //   demoPanelTimer = window.setInterval(function() {
-          //     that.style.zIndex = "9999";
-          //   }, 1);
-          // }
-        });
-        $(".jsPanel-content").css("font-size", "0");
-      } else {
-        this.$Notice.error({
-          title: "Open failed",
-          desc: "Sorry. Unsupported file format.",
-        });
-        return false;
-      }
-    },
-    getPersonalRes() {},
     getPreviousRes() {
       // 获取可继承的资源
       this.getPreActivities();
@@ -1420,7 +1971,7 @@ export default {
               // this.$router.push({ name: "Login" });
               this.tempLoginModal = true;
             } else if (res.data.code == 0) {
-              console.log(res.data.data);
+              // console.log(res.data.data);
               selectedRes = res.data.data;
               for (var j = 0; j < selectedRes.length; j++) {
                 selectedRes[j].key = mockData.length.toString();
@@ -1457,6 +2008,7 @@ export default {
     filterMethod(data, query) {
       return data.type.indexOf(query) > -1;
     },
+    // 从父级活动拉取资源，属于 flow
     saveResources() {
       let selectResource = this.getTargetKeys();
       let addFileList = [];
@@ -1471,8 +2023,8 @@ export default {
       console.log(addFileList);
 
       this.axios
-        .get(
-          "/GeoProblemSolving/rip/shareToProject/" +
+        .post(
+          "/GeoProblemSolving/rip/bind/" +
             this.activityInfo.aid +
             "/" +
             addFileList.toString() +
@@ -1485,7 +2037,7 @@ export default {
             // this.$router.push({ name: "Login" });
             this.tempLoginModal = true;
           } else if (res.data.code == 0) {
-            console.log(res.data.data);
+            // console.log(res.data.data);
             this.inheritResModal = false;
             // this.getResList();
             let resList = res.data.data;
@@ -1493,7 +2045,7 @@ export default {
               this.activityResList.push(resList[i]);
               this.activityDataList.push(resList[i]);
 
-              this.operationApi.resOperationRecord(
+              let operationId = this.operationApi.resOperationRecord(
                 this.activityInfo.aid,
                 "",
                 "",
@@ -1501,6 +2053,17 @@ export default {
                 this.userInfo.userId,
                 resList[i]
               );
+              // 生成临时操作记录
+              let resOperation = {
+                id: operationId,
+                type: "resource",
+                resRef: resList[i].uid,
+                operator: this.userInfo.userId,
+              };
+              this.$store.commit("updateTempOperations", {
+                behavior: "add",
+                operation: resOperation,
+              });
             }
             this.$Message.success("Shared file success!");
           } else {
@@ -1536,7 +2099,7 @@ export default {
       if (temp.length == 0) {
         temp = ["0"];
       }
-      if(temp[0] == "0"){
+      if (temp[0] == "0") {
         this.getResList();
         this.getParentActivities();
       } else {
@@ -1606,15 +2169,6 @@ export default {
                 this.activityDataList.push(res.data.data);
                 this.relatedResList.push(res.data.data);
 
-                this.operationApi.resOperationRecord(
-                  this.activityInfo.aid,
-                  "",
-                  "",
-                  "upload",
-                  this.userInfo.userId,
-                  res.data.data
-                );
-
                 this.newFolderModal = false;
               } else {
                 this.$Message.warning("New folder fail.");
@@ -1667,15 +2221,6 @@ export default {
                   break;
                 }
               }
-
-              this.operationApi.resOperationRecord(
-                this.activityInfo.aid,
-                "",
-                "",
-                "remove",
-                this.userInfo.userId,
-                folder
-              );
             } else {
               this.$Message.warning("Delete folder fail.");
             }
@@ -1738,15 +2283,6 @@ export default {
                     break;
                   }
                 }
-
-                this.operationApi.resOperationRecord(
-                  this.activityInfo.aid,
-                  "",
-                  "",
-                  "update",
-                  this.userInfo.userId,
-                  this.editForeInfo
-                );
               } else {
                 this.$Message.warning("Rename fail.");
               }
@@ -1760,10 +2296,22 @@ export default {
     },
 
     fileEditModelShow(fileInfo) {
+      let metadata = {};
       this.selectFileInfo = fileInfo;
+      this.editFileValidate.privacy = fileInfo.privacy;
       this.editFileValidate.name = fileInfo.name;
       this.editFileValidate.type = fileInfo.type;
+      this.oldType = fileInfo.type;
       this.editFileValidate.description = fileInfo.description;
+      if(this.editFileValidate.type =="data"){
+        metadata = this.operationApi.getResInfo(fileInfo.uid);
+        this.oldMetadata = metadata;
+        this.editFileValidate.format = metadata.format;
+        this.editFileValidate.scale = metadata.scale;
+        this.editFileValidate.reference = metadata.reference;
+        this.editFileValidate.unit = metadata.unit;
+        this.editFileValidate.concept = metadata.concept;
+      }
       this.editFileModel = true;
     },
     editFileInfo(name) {
@@ -1772,10 +2320,12 @@ export default {
           let formData = new FormData();
           let putResInfo = {
             uid: this.selectFileInfo.uid,
+            privacy: this.editFileValidate.privacy,
             name: this.editFileValidate.name,
             type: this.editFileValidate.type,
             description: this.editFileValidate.description,
           };
+          formData.append("resInfo",JSON.stringify(putResInfo));
           let temp = this.folderIdStack;
           if (temp.length == 0) {
             temp = ["0"];
@@ -1786,7 +2336,7 @@ export default {
                 this.activityInfo.aid +
                 "/" +
                 temp.toString(),
-              putResInfo
+              formData
             )
             .then((res) => {
               this.editFileModel = false;
@@ -1797,8 +2347,7 @@ export default {
               } else if (res.data.code == 0) {
                 this.selectFileInfo.name = this.editFileValidate.name;
                 this.selectFileInfo.type = this.editFileValidate.type;
-                this.selectFileInfo.description =
-                  this.editFileValidate.description;
+                this.selectFileInfo.description =this.editFileValidate.description;
 
                 for (var i = 0; i < this.activityResList.length; i++) {
                   if (this.activityResList[i].uid == this.selectFileInfo.uid) {
@@ -1818,18 +2367,67 @@ export default {
                     break;
                   }
                 }
-
-                this.operationApi.resOperationRecord(
+                let metadata = {};
+                if(this.editFileValidate.type == "data"){
+                  metadata.format = this.editFileValidate.format;
+                  metadata.scale = this.editFileValidate.scale;
+                  metadata.reference = this.editFileValidate.reference;
+                  metadata.unit = this.editFileValidate.unit;
+                  metadata.concept = this.editFileValidate.concept;
+                }
+                this.operationApi.getActivityDoc(this.activityInfo.aid);
+                let operationId = this.operationApi.resOperationRecord(
                   this.activityInfo.aid,
                   "",
                   "",
                   "update",
                   this.userInfo.userId,
-                  this.selectFileInfo
+                  this.selectFileInfo,
+                  metadata,
                 );
+                let metadataChanged = false;
+                let typeChanged = false;
+                let type = this.editFileValidate.type;
+                if(type != null && type != this.oldType){
+                  typeChanged = true
+                }
+                if(this.editFileValidate.type == "data"){
+                  // 检查元数据发生修改
+                  if(
+                    this.oldMetadata.format != metadata.format ||
+                    this.oldMetadata.scale != metadata.scale ||
+                    this.oldMetadata.reference != metadata.reference ||
+                    this.oldMetadata.unit != metadata.unit ||
+                    this.oldMetadata.concept != metadata.concept
+                  ){ metadataChanged = true; }
+                }
+                if(metadataChanged || typeChanged){
+                  this.axios
+                  .put(`/GeoProblemSolving/activityDoc/typeOrMeta/${this.activityInfo.parent}/${this.activityInfo.aid}/${this.selectFileInfo.uid}`)
+                  .then(res=>{
+                    console.log(res.data.data)
+                  }).catch(err=>{
+                    console.log(err.data)
+                  })
+                }
+                // 生成临时操作记录
+                let resOperation = {
+                  id: operationId,
+                  type: "resource",
+                  resRef: this.selectFileInfo.uid,
+                  operator: this.userInfo.userId,
+                };
+                this.$store.commit("updateTempOperations", {
+                  behavior: "add",
+                  operation: resOperation,
+                });
               } else {
                 this.$Message.warning("Update fail.");
               }
+              this.$Notice.success({
+                title: "Edit result",
+                desc: "Edit successfully",
+              });
             })
             .catch((err) => {
               this.$Message.warning("Update fail.");
@@ -1837,6 +2435,49 @@ export default {
           this.editFolderModal = false;
         }
       });
+    },
+    shareToParentModalShow(){
+      this.shareToParentModal = true;
+      this.fileListChoosed = [];
+      for(let i = 0 ; i < this.fileList.length ; i++){
+        if(!this.fileList[i].fromParents){
+          this.fileListChoosed.push(this.fileList[i]);
+        }
+      }
+      this.selctResToShare = [];
+    },
+    shareToParent(){
+      let addFileList = [];
+      for(let i = 0 ; i < this.selctResToShare.length ; i++){
+        for( let j = 0 ; j < this.fileList.length ; j++){
+          if(this.selctResToShare[i] == this.fileList[j].uid){
+            addFileList.push(this.fileList[j]);
+          }
+        }
+      }
+
+      let toAid = this.activityInfo.parent;
+      let fromAid = this.activityInfo.aid;
+      this.axios
+      .post(`/GeoProblemSolving/rip/file/bind/${fromAid}/${toAid}/0`, addFileList)
+      .then(res=>{
+        if(res.data == 'Offline'){
+          suc = false;
+          this.$store.commit('userLogout');
+        }else if(res.data.code == 0){
+          this.shareToParentModal = false;
+          this.$Notice.success({
+            title: "Sharing result",
+            desc: 'Successfully shring to parent activity.'
+          })
+        }
+      })
+      .catch(err=>{
+        this.$Notice.error({
+          title: 'Sharing failed.',
+          desc: ''
+        })
+      })
     },
     shareModalShow() {
       this.shareModal = true;
@@ -1868,6 +2509,7 @@ export default {
       }
       return result;
     },
+    // 从个人空间将数据添加到项目中
     shareResources() {
       let addFileList = this.selectedFilesToShare;
       let tempPath = this.folderIdStack;
@@ -1886,26 +2528,27 @@ export default {
         .then((res) => {
           if (res.data == "Offline") {
             this.$store.commit("userLogout");
-            // this.$router.push({ name: "Login" });
             this.tempLoginModal = true;
           } else if (res.data.code == 0) {
             this.shareModal = false;
-            let sharedFile = res.data.data;
-
-            for (let i = 0; i < sharedFile.length; i++) {
-              this.activityResList.push(sharedFile[i]);
-              this.activityDataList.push(sharedFile[i]);
-
-              this.operationApi.resOperationRecord(
-                this.activityInfo.aid,
-                "",
-                "",
-                "upload",
-                this.userInfo.userId,
-                sharedFile[i]
-              );
+            let sharedResult = res.data.data.sharedResult;
+            // let sharedFile = res.data.data.sharedFile;
+            // let list = this.fileList;
+            // for(let j = 0; j < sharedFile.length; j++){
+            //   this.activityResList.push[sharedFile[j]];
+            //   this.activityDataList.push[sharedFile[j]];
+            //   list.push[sharedFile[j]]
+            // }
+            // this.$set(this, "fileList", list);
+            for(let i = 0; i < sharedResult.length; i++){
+              let oid = sharedResult[i].oid
+              this.operationApi.getActivityDoc(this.activityInfo.aid);
+              let operation = this.operationApi.getOperationInfo(oid);
+              this.$store.commit('updateTempOperations',{
+                behavior: 'add',
+                operation: operation
+              });
             }
-
             this.$Message.success("Shared file success!");
             this.selectedFilesToShare = [];
           } else {
@@ -1919,34 +2562,34 @@ export default {
     dataVisualize() {},
   },
   filters: {
-      filterSizeType(value){
-        if(value === 0) return "0 B";
-        let k = 1024;
-        let sizes = ["B","KB","MB","GB"];
-        let i = Math.floor(Math.log(value) / Math.log(k));
-        return (value / Math.pow(k,i)).toPrecision(3) + " " + sizes[i];
-      },
-  }
+    filterSizeType(value) {
+      if (value === 0) return "0 B";
+      let k = 1024;
+      let sizes = ["B", "KB", "MB", "GB"];
+      let i = Math.floor(Math.log(value) / Math.log(k));
+      return (value / Math.pow(k, i)).toPrecision(3) + " " + sizes[i];
+    },
+  },
 };
 </script>
 <style scoped>
 .res-content {
-  width: 90px;
+  width: 85px;
   height: 85px;
   float: left;
   margin: 5px;
   cursor: pointer;
 }
 .res-content-parents {
-  width: 90px;
+  width: 85px;
   height: 85px;
   float: left;
   margin: 5px;
   cursor: pointer;
-  background-color:	#CCEEFF;
+  background-color: #cceeff;
 }
 .res-content-edit {
-  width: 90px;
+  width: 85px;
   height: 85px;
   float: left;
   margin: 5px;
@@ -2017,7 +2660,7 @@ export default {
   max-height: calc(100vh - 165px);
 }
 .resCard >>> .ivu-card-head {
-  padding: 6px 16px;
+  padding: 6px 8px;
 }
 .resCard >>> .ivu-card-body {
   padding: 5px;

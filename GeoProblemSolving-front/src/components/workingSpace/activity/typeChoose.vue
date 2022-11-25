@@ -10,28 +10,23 @@
             margin-buttom: 2%;
           "
         >
-          <span style="margin: 25px 0; font-size: 20px" title="Activity name"
+          <!-- <span style="margin: 25px 0; font-size: 20px" title="Activity name"
             >{{activityInfo.name}}</span
-          >
+          > -->
           <span style="margin: 0px 10px; font-size: 14px;overflow: hidden;width: 90%;display: inline-block;text-overflow: ellipsis;" title="Activity description">{{
             activityInfo.description
           }}</span>
         </div>
       </div>
-      <div style="text-align: center; margin-top: 10px; color: grey">
-        Activity contains workspaces to support collaborative geo-problem
-        solving. Here provides two activity types for different solutions of
-        geo-problems.
-      </div>
       <Row
         type="flex"
         justify="space-around"
         class="code-row-bg"
-        style="margin-top: 20px"
+        style="margin-top: 40px"
       >
         <Col span="10">
-          <Card style="min-height: 350px">
-            <div style="text-align: center; margin-top:10px">
+          <Card class="cardContiner" style="min-height: 350px;">
+            <div class="cardPicture" style="text-align: center; margin-top:10px">
               <img
                 src="../../../assets/images/startWork.png"
                 style="height: 150px"
@@ -47,7 +42,7 @@
                 <li>Accessible participatory tools and resources</li>
               </ul>
             </div>
-            <div style="text-align: center; margin-top: 2%">
+            <div style="text-align: center; margin-top: 2%; margin-bottom:5%;">
               <h3 v-if="operationPermissionIdentity(this.activityInfo.permission, this.userRole, 'manage_workspace_type')">
                 Select this type ->
                 <a @click="selectTypeModalShow('Activity_Unit')">Go</a>
@@ -56,8 +51,8 @@
           </Card>
         </Col>
         <Col span="10">
-          <Card style="min-height: 350px">
-            <div style="text-align: center; margin-top:10px;">
+          <Card class="cardContiner" style="min-height: 350px;">
+            <div class="cardPicture" style="text-align: center; margin-top:10px;">
               <img
                 src="../../../assets/images/designWorkflow.png"
                 style="height: 150px"
@@ -73,7 +68,7 @@
                 <li>Task coordination and participant management</li>
               </ul>
             </div>
-            <div style="text-align:center;margin-top:2%">
+            <div style="text-align:center;margin-top:2%; margin-bottom:5%;">
               <h3 v-if="operationPermissionIdentity(this.activityInfo.permission, this.userRole, 'manage_workspace_type')">
                 Select this type ->
                 <a @click="selectTypeModalShow('Activity_Group')">Go</a>
@@ -82,6 +77,11 @@
           </Card>
         </Col>
       </Row>
+       <div style="text-align: center; margin-top: 250px; color: grey">
+        Activity contains workspaces to support collaborative geo-problem
+        solving. Here provides two activity types for different solutions of
+        geo-problems.
+      </div>
     </Col>
     <Modal
       v-model="selectTypeModal"
@@ -124,6 +124,7 @@ export default {
     return {
       selectType: "Activity_Default",
       selectTypeModal: false,
+      slctActivityInfo: this.activityInfo,
       //恢复登录的模态框
       tempLoginModal: false,
       userRole: "visitor",
@@ -177,17 +178,17 @@ export default {
     },
     setType() {
       let url = "";
-      let aid = this.activityInfo.aid;
-      let data = this.preEditting(this.activityInfo);
+      let aid = this.slctActivityInfo.aid;
+      let data = this.preEditting(this.slctActivityInfo);
       data.type = this.selectType;
       if (this.selectType == "Activity_Group") {
         data.children = [];
       } else if (this.selectType == "Activity_Unit") {
         data.purpose = this.purpose;
       }
-      if (this.activityInfo.level == 1) {
+      if (this.slctActivityInfo.level == 1) {
         url = "/GeoProblemSolving/subproject/" + aid;
-      } else if (this.activityInfo.level > 1) {
+      } else if (this.slctActivityInfo.level > 1) {
         url = "/GeoProblemSolving/activity/" + aid;
       } else {
         url = "/GeoProblemSolving/project/" + aid;
@@ -195,15 +196,15 @@ export default {
       this.axios
         .put(url, data)
         .then((res) => {
-          console.log(res);
           if (res.data == "Offline") {
             this.$store.commit("userLogout");
             this.tempLoginModal = true;
           } else if (res.data.code == 0) {
             if(res.data.data.level == 0){
-              this.activityInfo = res.data.data;
+              this.slctActivityInfo = res.data.data;
             }
-            this.operationApi.activityUpdate("type", this.activityInfo);
+            // this.operationApi.activityUpdate("type", this.slctActivityInfo);
+            this.$emit("activityInfo",this.slctActivityInfo);
             this.$emit("typeChanged", {type: this.selectType, purpose: this.purpose});
           } else {
             this.$Notice.info({ title: "Result", desc: res.data.msg });
@@ -217,3 +218,6 @@ export default {
   },
 };
 </script>
+<style scoped>
+
+</style>

@@ -145,7 +145,7 @@ export default {
   position: relative;
   margin: 12px;
   padding: 8px;
-  word-break: break-all;
+  word-break: break-word;
   background: rgb(96, 206, 120);
   border: 1px solid transparent;
   color: black;
@@ -153,7 +153,7 @@ export default {
   font-size: 18px;
   float: right;
 
-  max-width: 90%;
+  max-width: 100%;
 }
 
 // .chat-bubble-right:before {

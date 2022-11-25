@@ -21,10 +21,6 @@ public class UpdateActivityDTO implements ToDomainConverter {
     private ActivityType type;
     private JSONArray pathway;
     private String permission;
-
-    /**
-     * MIMI
-     */
-    HashSet<String> toolList;
+    private HashSet<String> toolList;
 
 }

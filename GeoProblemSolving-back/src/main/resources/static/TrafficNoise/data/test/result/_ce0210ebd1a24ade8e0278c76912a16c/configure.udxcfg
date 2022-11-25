@@ -1,8 +1,0 @@
-<UDXZip>
-  <FileName count="4">
-    <Add value="NoiseResult.dbf" />
-    <Add value="NoiseResult.prj" />
-    <Add value="NoiseResult.shp" />
-    <Add value="NoiseResult.shx" />
-  </FileName>
-</UDXZip>

@@ -1,0 +1,102 @@
+<!doctype html>
+<html>
+<meta http-equiv="content-type" content="text/html" charset="utf-8">
+
+<head>
+    <title>Web RLS90</title>
+
+    <link rel="icon" href="./img/favicon.ico" type="image/x-icon"/>
+    <link rel="shortcut icon" href="./img/favicon.ico" type="image/x-icon"/>
+
+    <link rel="stylesheet" href="./css/leaflet/leaflet.css"/>
+    <link rel="stylesheet" href="./css/leaflet/leaflet.label.css"/>
+    <link rel="stylesheet" href="./css/bootstrap/bootstrap.css"/>
+    <link rel="stylesheet" href="./css/navbar.css">
+    <link rel="stylesheet" href="./css/trafficNoise.css">
+
+</head>
+
+<body style="overflow-y:hidden">
+<!-- navbars -->
+<div class="head navbar-static-top">
+    <nav class="navbar navbar-inverse" role="navigation">
+        <div class="nav-content container-fluid">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="javascript:showIndex()"></a>
+            </div>
+            <div>
+                <div id="operate" class="navbar-left">
+                    <ul class="nav navbar-nav">
+                        <li class="dropdown">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+                                Data
+                                <b class="caret"></b>
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a href="https://www.openstreetmap.org" target="_blank">OSM Data</a></li>
+                                <li class="divider"></li>
+                                <li class="dropdown-submenu">
+                                    <a href="#">Import Data</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="javascript:selectData('Road')">Road</a></li>
+                                        <li><a href="javascript:selectData('Building')">Building</a></li>
+                                        <li><a href="javascript:selectData('Barrier')">Barrier</a></li>
+                                    </ul>
+                                </li>
+                                <li class="divider"></li>
+                                <li class="dropdown-submenu">
+                                    <a href="#">Export Data</a>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="javascript:exportData('Road')">Road</a></li>
+                                        <li><a href="javascript:exportData('Building')">Building</a></li>
+                                        <li><a href="javascript:exportData('Barrier')">Barrier</a></li>
+                                        <li><a href="javascript:exportData('Region')">Region</a></li>
+                                    </ul>
+                                </li>
+                                <li class="divider"></li>
+                                <li><a href="javascript:selectData('Result')">Visualization (TIFF)</a></li>
+                            </ul>
+                        </li>
+
+                    </ul>
+                </div>
+<!--                <div class="navbar-right">-->
+<!--                    <div id="userInfo" class="userInfo">-->
+<!--                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">-->
+<!--                            <img src="./img/avatar/small/avatar.png" class="avatar">-->
+<!--                            <span>-->
+<!--                                    <span id="userName">-->
+
+<!--                                    </span>-->
+<!--                                    <b class="caret"></b>-->
+<!--                                </span>-->
+<!--                        </a>-->
+<!--                        <ul class="dropdown-menu">-->
+<!--                            <li><a href="#">My Data</a></li>-->
+<!--                            <li><a href="#">My Information</a></li>-->
+<!--                            <li class="divider"></li>-->
+<!--                            <li><a href="javascript:onLogoutClick()">Logout</a></li>-->
+<!--                        </ul>-->
+<!--                    </div>-->
+<!--                </div>-->
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- content -->
+<div class="content">
+    <iframe id="content-iframe" class="content-iframe" frameborder="0"></iframe>
+</div>
+</div>
+</body>
+
+<script src="./js/jquery/jquery-3.3.1.min.js"></script>
+<script src="./js/jquery/jquery.form.js"></script>
+<script src="./js/bootstrap/bootstrap.min.js"></script>
+
+<!--  collaboration.js  -->
+<script src="../collabTemplate/collaboration.js"></script>
+<script src="./js/trafficNoise-dataPrepare.js"></script>
+
+</html>

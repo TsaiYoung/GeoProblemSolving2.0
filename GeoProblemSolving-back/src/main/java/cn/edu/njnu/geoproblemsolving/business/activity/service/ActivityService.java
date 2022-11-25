@@ -4,6 +4,9 @@ import cn.edu.njnu.geoproblemsolving.business.activity.dto.UpdateActivityDTO;
 import cn.edu.njnu.geoproblemsolving.common.utils.JsonResult;
 import cn.edu.njnu.geoproblemsolving.business.activity.entity.Activity;
 
+import java.io.IOException;
+import java.util.HashSet;
+
 public interface ActivityService {
 
     JsonResult findActivity(String aid);
@@ -21,6 +24,8 @@ public interface ActivityService {
     JsonResult updateMemberRole(String aid, String userId, String role);
 
     JsonResult joinActivity(String aid, String userId);
+
+    JsonResult joinActivity(String aid, HashSet<String> userId);
 
     JsonResult quitActivity(String aid, String userId);
 

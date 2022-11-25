@@ -11,10 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * 项目中资源，这一块属于是参与式平台自己的部分
@@ -153,7 +150,7 @@ public class ActivityResController {
     public JsonResult delResource(@RequestParam ArrayList<String> uids,
                                   @RequestParam String aid,
                                   @RequestParam ArrayList<String> paths) {
-        String delResult = resService.delResource(aid, uids, paths);
+        String delResult = resService.delActivityRes(aid, uids, paths);
         if (delResult.equals("suc")) {
             return ResultUtils.success();
         }
@@ -162,7 +159,7 @@ public class ActivityResController {
 
 
     /**
-     * 将用户资源分享到项目中
+     * 将个人空间资源复制到活动中
      * @param req
      * @param aid 项目id
      * @param uids 资源id
@@ -175,7 +172,7 @@ public class ActivityResController {
                                    @PathVariable String uids,
                                    @PathVariable ArrayList<String> paths) {
         String userId = (String) req.getSession().getAttribute("userId");
-        List<ResourceEntity> shareResult = resService.resourceToProject(userId, aid, uids, paths);
+        JSONObject shareResult = resService.userResourceToProject(userId, aid, uids, paths);
         if (shareResult != null) {
             return ResultUtils.success(shareResult);
         }
@@ -189,7 +186,7 @@ public class ActivityResController {
     }
 
     /**
-     * 将模型生成的资源绑定的到项目中
+     * 将资源从子活动复制到指定活动
      * @param modelOutput
      * @param aid
      * @return
@@ -201,6 +198,23 @@ public class ActivityResController {
             return ResultUtils.success();
         }
         return ResultUtils.error(-2, "fail");
+    }
+
+    /**
+     * 将资源从 A 活动复制到 B 活动
+     * @param resList
+     * @param fromAid
+     * @param toAid
+     * @return
+     */
+    @RequestMapping(value = "/file/bind/{fromAid}/{toAid}/{paths}", method = RequestMethod.POST)
+    public JsonResult shareToProject(@RequestBody List<ResourceEntity> resList,
+                                     @PathVariable String fromAid,
+                                     @PathVariable String toAid,
+                                     @PathVariable ArrayList<String> paths){
+        String result = resService.selectedResFlow(fromAid, toAid, resList, paths);
+        if (result.equals("suc")) return ResultUtils.success();
+        else return ResultUtils.error(-2, "fail");
     }
 
     /**

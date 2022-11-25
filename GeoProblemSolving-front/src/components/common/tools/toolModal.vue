@@ -52,7 +52,7 @@
 
         <el-card shadow="never" class="card_contain">
           <div class="container_back">
-            Tools you have <br />sent to <br />the chatroom
+            Tools that you <br />have sent to <br />the chatroom
           </div>
           <vue-scroll :ops="ops" style="height: 480px">
             <div v-for="(tool, index) in sentTools" :key="tool.index">
@@ -153,14 +153,14 @@ export default {
 
     async getPublicTools() {
       let data = await get(
-        "/GeoProblemSolving/tool/inquiry/?key=privacy&value=Public"
+        "/GeoProblemSolving/tool/privacy/Public"
       );
       this.$set(this, "publicTools", data);
     },
 
     async getPersonalTools() {
       let data = await get(
-        `/GeoProblemSolving/tool/findByProvider/${this.userId}`
+        `/GeoProblemSolving/tool/provider/${this.userId}`
       );
       this.$set(this, "personalTools", data);
     },

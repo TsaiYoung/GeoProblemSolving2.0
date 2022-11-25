@@ -62,7 +62,7 @@ public class uploadRoadServlet extends HttpServlet {
                 respJson.put("url", "\\GeoProblemSolving\\" + zipUrl + "RoadCenterLine");
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            System.err.println(e.getMessage());
         }
         return respJson.toString();
     }

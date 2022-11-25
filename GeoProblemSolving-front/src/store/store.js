@@ -28,8 +28,11 @@ export default new Vuex.Store({
     DataServer: "221.226.60.2:8082", // 数据容器
     //外网版本用户服务器
     // UserServer: "http://94.191.49.160:8080/userServer",
-    //测试用用户服务器
-    UserServer: "http://172.21.212.103:8088/userServer",
+    //测试用用户服务器http://172.21.213.245:8088
+    //UserServer: "/userServer",
+    UserServer: "http://172.21.213.245:8088/userServer",
+    // resProxy: "https://geomodeling.njnu.edu.cn/dataTransferServer",
+    resProxy: "http://221.226.60.2:8082"
   },
   getters: {
     userState: state => {
@@ -64,9 +67,12 @@ export default new Vuex.Store({
     },
     activityTaskChange: state => {
       return state.activityTaskChange;
-    }, 
+    },
     notifications: state => {
       return state.notifications;
+    },
+    resProxy: state => {
+      return state.resProxy;
     }
   },
   mutations: {
@@ -127,6 +133,7 @@ export default new Vuex.Store({
     clearActivityTasks: (state) => {
       Vue.set(state, "activityTaskChange", []);
     },
+    //临时操作交换
     updateTempOperations: (state, data) => {
       state.tempOperationChange.push(data);
     },

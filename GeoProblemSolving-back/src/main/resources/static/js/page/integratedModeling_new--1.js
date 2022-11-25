@@ -577,7 +577,7 @@ var vue = new Vue({
             if(classi == undefined||classi === ''){
                 classi = 'all'
             }
-            axios.get("/PExploration/integration/pageByClassi", {
+            axios.get("/GeoProblemSolving/integration/pageByClassi", {
                     params: {
                         asc: 0,
                         page: this.pageOption2.currentPage - 1,
@@ -677,7 +677,7 @@ var vue = new Vue({
                 sortTypeName:'createTime',
                 method:classi
             }
-            axios.post("/PExploration/integration/getDataprocessing",data)
+            axios.post("/GeoProblemSolving/integration/getDataprocessing",data)
                 .then((res)=>{
                     setTimeout(()=>{
                         this.dataMethodList=res.data.data.list;
@@ -789,7 +789,7 @@ var vue = new Vue({
         async checkNodeContent(invokeService){
             let result = null
 
-            await axios.get("/PExploration/integration/checkNodeContent",{
+            await axios.get("/GeoProblemSolving/integration/checkNodeContent",{
                 params:{
                     serverId:invokeService.serviceId,
                     token:invokeService.token,
@@ -933,7 +933,7 @@ var vue = new Vue({
             this.loading = true
             // $.ajax({
             //     type: "GET",
-            //     url: "/PExploration/integration/pageDataItemChecked",
+            //     url: "/GeoProblemSolving/integration/pageDataItemChecked",
             //     data:{
             //         page:this.pageOptionDataItem.currentPage-1,
             //         pageSize:this.pageOptionDataItem.pageSize,
@@ -1245,7 +1245,7 @@ var vue = new Vue({
             this.dataNode.status = 0
             // $.ajax({
             //     type: "GET",
-            //     url: "/PExploration/integration/getUserNodes",
+            //     url: "/GeoProblemSolving/integration/getUserNodes",
             //     async: true,
             //     success: (res) => {
             //         if (res.code == -1) {
@@ -1274,7 +1274,7 @@ var vue = new Vue({
             this.nodeLoading=true
             // $.ajax({
             //     type: "GET",
-            //     url: "/PExploration/integration/getNodeContentCheck",
+            //     url: "/GeoProblemSolving/integration/getNodeContentCheck",
             //     data:{
             //         token:token,
             //         type:type,
@@ -1391,7 +1391,7 @@ var vue = new Vue({
 
         editTaskNameComfirm() {
             $.ajax({
-                url: "/PExploration/integration/updateIntegrateTaskName",
+                url: "/GeoProblemSolving/integration/updateIntegrateTaskName",
                 async: true,
                 data: {
                     taskOid: this.checkedTask.oid,
@@ -1409,7 +1409,7 @@ var vue = new Vue({
 
         editTaskDescriptionComfirm() {
             $.ajax({
-                url: "/PExploration/integration/updateIntegrateTaskDescription",
+                url: "/GeoProblemSolving/integration/updateIntegrateTaskDescription",
                 async: true,
                 data: {
                     taskOid: this.checkedTask.oid,
@@ -1682,7 +1682,7 @@ var vue = new Vue({
                     var _this = this;
 
                     $.ajax({
-                        url: "/PExploration/integration/runIntegratedTask",
+                        url: "/GeoProblemSolving/integration/runIntegratedTask",
                         data: formData,
                         type: "POST",
                         processData: false,
@@ -1718,7 +1718,7 @@ var vue = new Vue({
 
         checkIntegratedTask(taskId,interval){
             $.ajax({
-                url: "/PExploration/integration/checkIntegratedTask/" + taskId,
+                url: "/GeoProblemSolving/integration/checkIntegratedTask/" + taskId,
                 data: {},
                 type: "GET",
                 success: (obj) => {
@@ -2055,7 +2055,7 @@ var vue = new Vue({
             }
 
             $.ajax({
-                url: "/PExploration/integration/updateIntegratedTaskInfo",
+                url: "/GeoProblemSolving/integration/updateIntegratedTaskInfo",
                 async: true,
                 data: JSON.stringify(data),
                 // traditional:true,
@@ -2096,7 +2096,7 @@ var vue = new Vue({
 
             let saveStatus
             $.ajax({
-                url: "/PExploration/integration/saveIntegratedTask?aid="+this.getStepInfo(),
+                url: "/GeoProblemSolving/integration/saveIntegratedTask?aid="+this.getStepInfo(),
                 async: true,
                 data: JSON.stringify(data),
                 // traditional:true,
@@ -2122,7 +2122,7 @@ var vue = new Vue({
 
         updateTaskId(taskOid,taskId){//把managerserver返回的taskid更新到门户数据库
             $.ajax({
-                url: "/PExploration/integration/updateIntegrateTaskId",
+                url: "/GeoProblemSolving/integration/updateIntegrateTaskId",
                 async: true,
                 data: {
                     taskOid:taskOid,
@@ -2329,7 +2329,7 @@ var vue = new Vue({
         checkTaskInfo(task){
             this.taskInfoVisible = true
             console.log(this.integratedTaskList[0].id)
-            axios.get('/PExploration/integration/getIntegrateTaskByOid',{
+            axios.get('/GeoProblemSolving/integration/getIntegrateTaskByOid',{
                 params:{
                     taskOid:task.oid
                 }
@@ -2493,7 +2493,7 @@ var vue = new Vue({
 
         listIntegrateTask(){
             let aid = this.getStepInfo();
-            axios.get("/PExploration/integration/pageIntegrateTaskByActivity",{
+            axios.get("/GeoProblemSolving/integration/pageIntegrateTaskByActivity",{
                 params:{
                     aid: aid,
                     asc:0,
@@ -2513,7 +2513,7 @@ var vue = new Vue({
         },
 
         listIntegrateTaskByUser(){
-            axios.get("/PExploration/integration/pageIntegrateTaskByUser",{
+            axios.get("/GeoProblemSolving/integration/pageIntegrateTaskByUser",{
                 params:{
                     asc:0,
                     pageNum:this.pageOption.currentPage-1,
@@ -2552,7 +2552,7 @@ var vue = new Vue({
                         instance.confirmButtonLoading = true;
                         instance.confirmButtonText = 'deleting...';
                         setTimeout(() => {
-                            axios.delete("/PExploration/integration/deleteIntegratedTask",{
+                            axios.delete("/GeoProblemSolving/integration/deleteIntegratedTask",{
                                 params:{
                                     taskOid:task.oid
                                 }

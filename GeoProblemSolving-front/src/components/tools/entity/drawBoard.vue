@@ -1,6 +1,6 @@
 <style scoped>
 /* @import "//fonts.useso.com/css?family=Roboto:300,400,500,700,400italic"; */
-@import "http://cdn.bootcss.com/material-design-icons/3.0.1/iconfont/material-icons.css";
+@import "https://cdn.bootcss.com/material-design-icons/3.0.1/iconfont/material-icons.css";
 * {
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -617,7 +617,7 @@ export default {
                   pathURL: "/GeoProblemSolving/resource/upload/" + dataName
                 };
                 that.socketApi.sendSock(
-                  "DrawServer/" + roomId, 
+                  "DrawServer/" + roomId,
                   that.send_content,
                   that.getSocketConnect
                 );

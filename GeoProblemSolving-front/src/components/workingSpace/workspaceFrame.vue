@@ -53,7 +53,7 @@
       dis-hover
       class="workspaceCard"
       id="ActivityContent"
-      style="height: calc(100vh - 130px)"
+      style="height: calc(100vh - 120px)"
     >
       <h3 slot="title">
         <Breadcrumb style="display: inline-block" separator=">">
@@ -84,7 +84,7 @@
         >
         <Button
           v-if="
-            slctActivity.level > 0 && roleIdentity(slctActivity) == 'visitor' 
+            slctActivity.level > 0 && roleIdentity(slctActivity) == 'visitor'
           "
           icon="md-log-in"
           size="small"
@@ -105,9 +105,7 @@
           >Delete</Button
         >
         <Button
-          v-if="
-            slctActivity.level == 0 && slctActivity.type != 'Activity_Default'
-          "
+          v-if="slctActivity.level == 0"
           type="primary"
           icon="ios-bookmark"
           size="small"
@@ -124,14 +122,14 @@
         :activityInfo="slctActivity"
         :userInfo="userInfo"
         @typeChanged="typeChanged"
-        :key="slctActivity.aid"
+        :key="contentId"
       ></type-choose>
       <single-activity
         v-else-if="contentType == 1"
         :activityInfo="slctActivity"
         :userInfo="userInfo"
         :projectInfo="projectInfo"
-        :key="slctActivity.aid"
+        :key="contentId"
       ></single-activity>
       <multi-activity
         v-else-if="contentType == 2"
@@ -140,7 +138,7 @@
         :projectInfo="projectInfo"
         :childActivities="childActivities"
         :nameConfirm="nameConfirm"
-        :key="slctActivity.aid"
+        :key="contentId"
         v-on:enterActivity="enterActivity"
         v-on:enterRootActivity="enterRootActivity"
       ></multi-activity>
@@ -148,7 +146,7 @@
         v-else-if="contentType == 3"
         :activityInfo="slctActivity"
         :userInfo="userInfo"
-        :key="slctActivity.aid"
+        :key="contentId"
       ></activity-visitor>
     </Card>
     <!-- edit project -->
@@ -296,6 +294,7 @@ export default {
           background: "lightgrey",
         },
       },
+      contentId: "",
       treeFold: false,
       cascader: [],
       nameConfirm: [],
@@ -361,15 +360,18 @@ export default {
     next((vm) => {
       if (!vm.$store.getters.userState || vm.$store.getters.userId == "") {
         vm.$router.push({ name: "Login" });
+      } else {
+        next();
       }
     });
-    next();
   },
-  created() {
-    this.initInfo();
-  },
+  created() {},
   mounted() {
-    // this.initInfo();
+    // load activity doc
+    let urlInfo = this.getUrlInfo();
+    this.operationApi.getActivityDoc(urlInfo.aid);
+
+    this.initInfo();
     // this.locateActivity();
     window.addEventListener("resize", this.reSize);
 
@@ -400,7 +402,6 @@ export default {
         .get("/GeoProblemSolving/project/" + urlInfo.aid)
         .then((res) => {
           //offline model
-
           if (res.data.code == 0) {
             // this.$set(this, "projectInfo", res.data.data[0])
             this.projectInfo = res.data.data;
@@ -613,7 +614,7 @@ export default {
       // load activity doc
       let result = this.operationApi.getActivityDoc(aid);
       if (result === "empty") {
-        this.operationApi.activityDocInit(activity, this.userInfo);
+        this.operationApi.activityDocInit(this.slctActivity, this.userInfo);
       }
 
       if (level > 1) {
@@ -644,8 +645,11 @@ export default {
           )
           .then((res) => {
             //offline model
-
-            if (res.data.code == 0) {
+            if (res.data == "Offline") {
+              this.$store.commit("userLogout");
+              // this.$router.push({ name: "Login" });
+              this.tempLoginModal = true;
+            } else if (res.data.code == 0) {
               let children = res.data.data;
               this.childActivities = children;
               this.nameConfirm = [];
@@ -692,7 +696,11 @@ export default {
         .get(url)
         .then((res) => {
           //offline model
-          if (res.data.code == 0) {
+          if (res.data == "Offline") {
+              this.$store.commit("userLogout");
+              // this.$router.push({ name: "Login" });
+              this.tempLoginModal = true;
+          } else if (res.data.code == 0) {
             let branch = res.data.data;
             this.childActivities = branch.children;
 
@@ -721,7 +729,11 @@ export default {
         .then((res) => {
           //offline model
 
-          if (res.data.code == 0) {
+          if (res.data == "Offline") {
+              this.$store.commit("userLogout");
+              // this.$router.push({ name: "Login" });
+              this.tempLoginModal = true;
+          } else if (res.data.code == 0) {
             let branch = res.data.data;
             this.childActivities = branch.children;
             this.buildActivityTree(
@@ -742,7 +754,7 @@ export default {
       this.nameConfirm = [];
       // child activities normalization
       let role = this.roleIdentity(ancestors[0]);
-      if (children.length > 0 && role != 'visitor' ) {
+      if (children.length > 0 && role != "visitor") {
         for (var i = 0; i < children.length; i++) {
           children[i].children = [];
           this.nameConfirm.push(children[i].name);
@@ -812,19 +824,30 @@ export default {
     },
     typeChanged(data) {
       this.slctActivity.type = data.type;
+      if (this.slctActivity.level == 0) {
+        this.projectInfo.type = data.type;
+      }
       this.updatePathway("type", data.purpose);
       this.setContent(this.slctActivity);
     },
+    activityInfo(data) {
+      this.activityInfo = data;
+    },
     setContent(activity) {
       //更改当前页面的url，且不刷新页面
-      var originUrl = window.location.href;
-      var valiable = originUrl.split("?")[0];
-      window.history.pushState(
-        null,
-        null,
-        valiable + "?aid=" + activity.aid + "&level=" + activity.level + ""
-      );
-
+      // var originUrl = window.location.href;
+      // var valiable = originUrl.split("?")[0];
+      // window.history.pushState(
+      //   null,
+      //   null,
+      //   valiable + "?aid=" + activity.aid + "&level=" + activity.level + ""
+      // );
+      this.$router.push({
+        name: "workspaceContent",
+        params: { projectId: this.projectInfo.aid },
+        query: { aid: activity.aid, level: activity.level },
+      });
+      this.contentId = Math.random();
       if (
         this.roleIdentity(activity) == "visitor" &&
         !this.permissionIdentity(
@@ -880,7 +903,7 @@ export default {
               }
             }
             // update activity doc
-            this.operationApi.activityUpdate("type", this.editActivityForm);
+            // this.operationApi.activityUpdate("type", this.editActivityForm);
             this.updatePathway("type", this.editActivityForm.purpose);
           } else if (
             this.editActivityForm.purpose != this.slctActivity.purpose
@@ -888,7 +911,7 @@ export default {
             this.updatePathway("type", this.editActivityForm.purpose);
           } else {
             // update activity doc
-            this.operationApi.activityUpdate("other", this.editActivityForm);
+            // this.operationApi.activityUpdate("other", this.editActivityForm);
           }
 
           // Update the activity name
@@ -913,7 +936,7 @@ export default {
                 this.$store.commit("userLogout");
                 this.tempLoginModal = true;
               } else if (res.data.code == 0) {
-                this.$Notice.info({ title: "Result", desc: "Success!" });
+                this.$Notice.success({ title: "Result", desc: "Success!" });
                 // updata slctActivity
                 this.slctActivity.name = this.editActivityForm.name;
                 this.slctActivity.description =
@@ -929,7 +952,7 @@ export default {
                 // change content
                 this.setContent(this.slctActivity);
               } else {
-                this.$Notice.info({ title: "Result", desc: res.data.msg });
+                this.$Notice.error({ title: "Result", desc: res.data.msg });
                 this.activityEditModal = false;
               }
             })
@@ -940,57 +963,61 @@ export default {
       });
     },
     updatePathway(type, content) {
-      if (this.parentActivity.pathway != undefined) {
-        if (type === "name") {
-          let pathway = JSON.stringify(this.parentActivity.pathway);
-          // let faceName = new RegExp(this.slctActivity.name, "g");
-          // pathway.replace(faceName, content);
-          let newpathway = pathway.replaceAll(
-            '"' + this.slctActivity.name + '"',
-            '"' + content + '"'
-          );
-          this.parentActivity.pathway = JSON.parse(newpathway);
-        } else if (type === "type") {
-          for (let i = 0; i < this.parentActivity.pathway.length; i++) {
-            if (this.parentActivity.pathway[i].aid === this.slctActivity.aid) {
-              this.parentActivity.pathway[i].category =
-                this.getStepCategroy(content);
+      if (this.parentActivity) {
+        if (this.parentActivity.pathway != undefined) {
+          if (type === "name") {
+            let pathway = JSON.stringify(this.parentActivity.pathway);
+            // let faceName = new RegExp(this.slctActivity.name, "g");
+            // pathway.replace(faceName, content);
+            let newpathway = pathway.replaceAll(
+              '"' + this.slctActivity.name + '"',
+              '"' + content + '"'
+            );
+            this.parentActivity.pathway = JSON.parse(newpathway);
+          } else if (type === "type") {
+            for (let i = 0; i < this.parentActivity.pathway.length; i++) {
+              if (
+                this.parentActivity.pathway[i].aid === this.slctActivity.aid
+              ) {
+                this.parentActivity.pathway[i].category =
+                  this.getStepCategroy(content);
+              }
             }
+          } else if (type === "delete") {
+            this.removePathwayNode(content);
           }
-        } else if (type === "delete") {
-          this.removePathwayNode(content);
         }
-      }
 
-      // url
-      let url = "";
-      if (this.parentActivity.level == 1) {
-        url = "/GeoProblemSolving/subproject/" + this.parentActivity.aid;
-      } else if (this.parentActivity.level > 1) {
-        url = "/GeoProblemSolving/activity/" + this.parentActivity.aid;
-      } else {
-        url = "/GeoProblemSolving/project/" + this.parentActivity.aid;
+        // url
+        let url = "";
+        if (this.parentActivity.level == 1) {
+          url = "/GeoProblemSolving/subproject/" + this.parentActivity.aid;
+        } else if (this.parentActivity.level > 1) {
+          url = "/GeoProblemSolving/activity/" + this.parentActivity.aid;
+        } else {
+          url = "/GeoProblemSolving/project/" + this.parentActivity.aid;
+        }
+        let data = {
+          aid: this.parentActivity.aid,
+          pathway: this.parentActivity.pathway,
+        };
+        this.axios
+          .put(url, data)
+          .then((res) => {
+            if (res.data == "Offline") {
+              this.$store.commit("userLogout");
+              // this.$router.push({ name: "Login" });
+              this.tempLoginModal = true;
+            } else if (res.data.code !== 0) {
+              this.$Notice.info({
+                desc: "Fail to update the pathway in the parent activity!",
+              });
+            }
+          })
+          .catch((err) => {
+            throw err;
+          });
       }
-      let data = {
-        aid: this.parentActivity.aid,
-        pathway: this.parentActivity.pathway,
-      };
-      this.axios
-        .put(url, data)
-        .then((res) => {
-          if (res.data == "Offline") {
-            this.$store.commit("userLogout");
-            // this.$router.push({ name: "Login" });
-            this.tempLoginModal = true;
-          } else if (res.data.code !== 0) {
-            this.$Notice.info({
-              desc: "Fail to update the pathway in the parent activity!",
-            });
-          }
-        })
-        .catch((err) => {
-          throw err;
-        });
     },
     // remove
     removePathwayNode(aid) {
@@ -1113,6 +1140,16 @@ export default {
           } else if (res.data.code == 0) {
             this.$Notice.info({ title: "Join the activity", desc: "Success!" });
             this.enterActivity(this.slctActivity);
+
+            // // update activity doc
+            // this.operationApi.participantUpdate(
+            //   this.slctActivity.aid,
+            //   "join",
+            //   this.userInfo.userId,
+            //   this.userInfo.name,
+            //   "ordinary-member",
+            //   this.userInfo.domain
+            // );
           } else if (res.data.code == -3) {
             this.$Notice.info({
               desc: "You has already been a member of the activity.",
@@ -1145,6 +1182,7 @@ export default {
             userEmail: this.userInfo.email,
             userName: this.userInfo.name,
             userId: this.userInfo.userId,
+            userDomain: this.userInfo.domain,
             description: this.applyJoinForm.reason,
             approve: "unknow",
           },
@@ -1192,13 +1230,13 @@ export default {
           } else if (res.data.code == 0) {
             this.$Notice.info({ title: "Delete", desc: "Success!" });
             // activity document
-            this.operationApi.activityRecord(
-              "",
-              "remove",
-              this.userInfo.userId,
-              this.slctActivity
-            );
-            this.operationApi.deleteActivityDoc(this.slctActivity.aid);
+            // this.operationApi.activityRecord(
+            //   "",
+            //   "remove",
+            //   this.userInfo.userId,
+            //   this.slctActivity
+            // );
+            // this.operationApi.deleteActivityDoc(this.slctActivity.aid);
             // update pathway
             this.updatePathway("delete", aid);
             this.activityDeleteModal = false;
@@ -1241,6 +1279,6 @@ export default {
 }
 
 .workspaceCard >>> .ivu-card-body {
-  padding: 0px 10px;
+  padding: 5px;
 }
 </style>

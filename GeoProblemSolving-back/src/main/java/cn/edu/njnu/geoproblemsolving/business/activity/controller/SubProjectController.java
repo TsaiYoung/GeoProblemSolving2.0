@@ -1,12 +1,15 @@
 package cn.edu.njnu.geoproblemsolving.business.activity.controller;
 
 import cn.edu.njnu.geoproblemsolving.business.activity.dto.UpdateActivityDTO;
+import cn.edu.njnu.geoproblemsolving.business.activity.entity.Project;
 import cn.edu.njnu.geoproblemsolving.common.utils.JsonResult;
 import cn.edu.njnu.geoproblemsolving.business.activity.entity.Subproject;
 import cn.edu.njnu.geoproblemsolving.business.activity.service.SubprojectService;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 
 @CrossOrigin(origins = "*",allowCredentials = "true")
@@ -95,6 +98,11 @@ public class SubProjectController {
     @RequestMapping(value = "/{aid}/user", method = RequestMethod.POST)
     public JsonResult joinSubproject(@PathVariable("aid") String aid, @RequestParam("userId") String userId){
         return subprojectService.joinSubproject(aid, userId);
+    }
+
+    @RequestMapping(value = "/{aid}/userBatch", method = RequestMethod.POST)
+    public JsonResult joinProjectBatch(@PathVariable String aid, @RequestParam HashSet<String> userIds) {
+        return subprojectService.joinSubproject(aid, userIds);
     }
 
     /**

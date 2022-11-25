@@ -18,15 +18,14 @@ public class prepareData {
     @filePath:包含拓展名的文件绝对路径
      */
     public static void genCpgFile(String filePath) throws IOException {
-        try{
+        try {
             File file = new File(filePath);
             file.deleteOnExit();
             FileOutputStream outputStream = new FileOutputStream(file);
             PrintStream printStream = new PrintStream(outputStream);
             printStream.print("UTF-8");
             outputStream.close();
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
@@ -36,23 +35,21 @@ public class prepareData {
     @fileName:不包含拓展名的文件绝对路径
     */
     public static void copyDbfFile(String fileName) throws IOException {
-        try{
+        try {
             Path sourcePath = Paths.get(fileName + ".dbf");
-            Path destPath  = Paths.get(fileName + ".mdbf");
-            Files.copy(sourcePath,destPath, StandardCopyOption.REPLACE_EXISTING);
-        }
-        catch (Exception e){
+            Path destPath = Paths.get(fileName + ".mdbf");
+            Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
 
     public static void copyMdbfFile(String fileName) throws IOException {
-        try{
+        try {
             Path sourcePath = Paths.get(fileName + ".mdbf");
-            Path destPath  = Paths.get(fileName + ".dbf");
-            Files.copy(sourcePath,destPath, StandardCopyOption.REPLACE_EXISTING);
-        }
-        catch (Exception e){
+            Path destPath = Paths.get(fileName + ".dbf");
+            Files.copy(sourcePath, destPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (Exception e) {
             System.out.println(e.getMessage());
         }
     }
@@ -60,13 +57,13 @@ public class prepareData {
     public static JSONObject prepareRoadData(String roadFilePath) throws IOException {
         genCpgFile(roadFilePath + ".cpg");
         JSONObject resultJSON = new JSONObject();
-        double[] resultArr = new double[]{0.0,0.0};
+        double[] resultArr = new double[]{0.0, 0.0};
         ogr.RegisterAll();
 //        为了支持中文路径，请添加下面这句代码
         gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES");
 //		为了是属性表字段支持中文，请添加下面这句代码
         gdal.SetConfigOption("SHAPE_ENCODING", "UTF-8");
-        gdal.SetConfigOption("SHAPE_RESTORE_SHX","YES");
+        gdal.SetConfigOption("SHAPE_RESTORE_SHX", "YES");
         Driver driver = ogr.GetDriverByName("ESRI shapefile");
         if (driver == null)
             return resultJSON;
@@ -82,14 +79,14 @@ public class prepareData {
 //        获得地理坐标
         SpatialReference latlng = projection.CloneGeogCS();
 //        新建投影坐标转地理坐标的坐标转换方法
-        CoordinateTransformation XY2Latlng = new CoordinateTransformation(projection,latlng);
+        CoordinateTransformation XY2Latlng = new CoordinateTransformation(projection, latlng);
 
 //        获得图层的范围，是投影坐标，需要转化为经纬度
         double[] prjExtent = layer.GetExtent();
 
-        double[] latlngCenter = XY2Latlng.TransformPoint((prjExtent[0]+prjExtent[1])/2, (prjExtent[2]+prjExtent[3])/2);
-        resultJSON.put("Lng",latlngCenter[0]);
-        resultJSON.put("Lat",latlngCenter[1]);
+        double[] latlngCenter = XY2Latlng.TransformPoint((prjExtent[0] + prjExtent[1]) / 2, (prjExtent[2] + prjExtent[3]) / 2);
+        resultJSON.put("Lng", latlngCenter[0]);
+        resultJSON.put("Lat", latlngCenter[1]);
 
 //        如果之前文件没有相应字段则创建
 //        has变量是用来标记字段是否为新创建的，若has为0，则说明是新创建字段，需要初始化值
@@ -230,8 +227,7 @@ public class prepareData {
 
             if (hasID == 0 || !feature.IsFieldSet("OBJECTID")) {
                 feature.SetField("OBJECTID", count);
-            }
-            else{
+            } else {
                 int featureID = feature.GetFieldAsInteger("OBJECTID");
                 maxID = featureID > maxID ? featureID : maxID;
             }
@@ -246,18 +242,24 @@ public class prepareData {
         dSource.SyncToDisk();
         dSource.delete();
 
-        resultJSON.put("maxID",maxID>count?maxID:count);
+        resultJSON.put("maxID", maxID > count ? maxID : count);
         return resultJSON;
     }
 
     public static JSONObject prepareBuildingData(String buildingFilePath) throws IOException {
         JSONObject resultJSON = new JSONObject();
-        ogr.RegisterAll();
+        try {
+            System.out.println("start read shp");
+            ogr.RegisterAll();
 //        为了支持中文路径，请添加下面这句代码
-        gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES");
+            gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES");
 //		为了是属性表字段支持中文，请添加下面这句代码
-        gdal.SetConfigOption("SHAPE_ENCODING", "CP936");
-        gdal.SetConfigOption("SHAPE_RESTORE_SHX","YES");
+            gdal.SetConfigOption("SHAPE_ENCODING", "CP936");
+            gdal.SetConfigOption("SHAPE_RESTORE_SHX", "YES");
+
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
         Driver driver = ogr.GetDriverByName("ESRI shapefile");
         if (driver == null)
             return resultJSON;
@@ -273,14 +275,14 @@ public class prepareData {
 //        获得地理坐标
         SpatialReference latlng = projection.CloneGeogCS();
 //        新建投影坐标转地理坐标的坐标转换方法
-        CoordinateTransformation XY2Latlng = new CoordinateTransformation(projection,latlng);
+        CoordinateTransformation XY2Latlng = new CoordinateTransformation(projection, latlng);
 
 //        获得图层的范围，是投影坐标，需要转化为经纬度
         double[] prjExtent = layer.GetExtent();
 
-        double[] latlngCenter = XY2Latlng.TransformPoint((prjExtent[0]+prjExtent[1])/2, (prjExtent[2]+prjExtent[3])/2);
-        resultJSON.put("Lng",latlngCenter[0]);
-        resultJSON.put("Lat",latlngCenter[1]);
+        double[] latlngCenter = XY2Latlng.TransformPoint((prjExtent[0] + prjExtent[1]) / 2, (prjExtent[2] + prjExtent[3]) / 2);
+        resultJSON.put("Lng", latlngCenter[0]);
+        resultJSON.put("Lat", latlngCenter[1]);
 
 //        如果之前文件没有相应字段则创建
         int hasHeight, hasStorey, hasID;
@@ -314,8 +316,7 @@ public class prepareData {
 //            如果字段是刚添加或字段值还未设置，则初始化这个值
             if (hasID == 0 || !feature.IsFieldSet("OBJECTID")) {
                 feature.SetField("OBJECTID", count);
-            }
-            else{
+            } else {
                 int featureID = feature.GetFieldAsInteger("OBJECTID");
                 maxID = featureID > maxID ? featureID : maxID;
             }
@@ -337,19 +338,19 @@ public class prepareData {
         dSource.SyncToDisk();
         dSource.delete();
 
-        resultJSON.put("maxID",maxID>count?maxID:count);
+        resultJSON.put("maxID", maxID > count ? maxID : count);
         return resultJSON;
     }
 
     public static JSONObject prepareBarrierData(String barrierFilePath) throws IOException {
         JSONObject resultJSON = new JSONObject();
-        double[] resultArr = new double[]{0.0,0.0};
+        double[] resultArr = new double[]{0.0, 0.0};
         ogr.RegisterAll();
 //        为了支持中文路径，请添加下面这句代码
         gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES");
 //		为了是属性表字段支持中文，请添加下面这句代码
         gdal.SetConfigOption("SHAPE_ENCODING", "CP936");
-        gdal.SetConfigOption("SHAPE_RESTORE_SHX","YES");
+        gdal.SetConfigOption("SHAPE_RESTORE_SHX", "YES");
         Driver driver = ogr.GetDriverByName("ESRI shapefile");
         if (driver == null)
             return resultJSON;
@@ -365,14 +366,14 @@ public class prepareData {
 //        获得地理坐标
         SpatialReference latlng = projection.CloneGeogCS();
 //        新建投影坐标转地理坐标的坐标转换方法
-        CoordinateTransformation XY2Latlng = new CoordinateTransformation(projection,latlng);
+        CoordinateTransformation XY2Latlng = new CoordinateTransformation(projection, latlng);
 
 //        获得图层的范围，是投影坐标，需要转化为经纬度
         double[] prjExtent = layer.GetExtent();
 
-        double[] latlngCenter = XY2Latlng.TransformPoint((prjExtent[0]+prjExtent[1])/2, (prjExtent[2]+prjExtent[3])/2);
-        resultJSON.put("Lng",latlngCenter[0]);
-        resultJSON.put("Lat",latlngCenter[1]);
+        double[] latlngCenter = XY2Latlng.TransformPoint((prjExtent[0] + prjExtent[1]) / 2, (prjExtent[2] + prjExtent[3]) / 2);
+        resultJSON.put("Lng", latlngCenter[0]);
+        resultJSON.put("Lat", latlngCenter[1]);
 
 //        如果之前文件没有相应字段则创建
         int hasLength, hasHeight, hasID;
@@ -415,8 +416,7 @@ public class prepareData {
             }
             if (hasID == 0 || !feature.IsFieldSet("OBJECTID")) {
                 feature.SetField("OBJECTID", count);
-            }
-            else{
+            } else {
                 int featureID = feature.GetFieldAsInteger("OBJECTID");
                 maxID = featureID > maxID ? featureID : maxID;
             }
@@ -431,19 +431,19 @@ public class prepareData {
         dSource.SyncToDisk();
         dSource.delete();
 
-        resultJSON.put("maxID",maxID>count?maxID:count);
+        resultJSON.put("maxID", maxID > count ? maxID : count);
         return resultJSON;
     }
 
     public static JSONObject prepareResultData(String resultFilePath) throws IOException {
         JSONObject resultJSON = new JSONObject();
-        double[] resultArr = new double[]{0.0,0.0};
+        double[] resultArr = new double[]{0.0, 0.0};
         ogr.RegisterAll();
 //        为了支持中文路径，请添加下面这句代码
         gdal.SetConfigOption("GDAL_FILENAME_IS_UTF8", "YES");
 //		为了是属性表字段支持中文，请添加下面这句代码
         gdal.SetConfigOption("SHAPE_ENCODING", "CP936");
-        gdal.SetConfigOption("SHAPE_RESTORE_SHX","YES");
+        gdal.SetConfigOption("SHAPE_RESTORE_SHX", "YES");
         Driver driver = ogr.GetDriverByName("ESRI shapefile");
         if (driver == null)
             return resultJSON;
@@ -459,14 +459,14 @@ public class prepareData {
 //        获得地理坐标
         SpatialReference latlng = projection.CloneGeogCS();
 //        新建投影坐标转地理坐标的坐标转换方法
-        CoordinateTransformation XY2Latlng = new CoordinateTransformation(projection,latlng);
+        CoordinateTransformation XY2Latlng = new CoordinateTransformation(projection, latlng);
 
 //        获得图层的范围，是投影坐标，需要转化为经纬度
         double[] prjExtent = layer.GetExtent();
 
-        double[] latlngCenter = XY2Latlng.TransformPoint((prjExtent[0]+prjExtent[1])/2, (prjExtent[2]+prjExtent[3])/2);
-        resultJSON.put("Lng",latlngCenter[0]);
-        resultJSON.put("Lat",latlngCenter[1]);
+        double[] latlngCenter = XY2Latlng.TransformPoint((prjExtent[0] + prjExtent[1]) / 2, (prjExtent[2] + prjExtent[3]) / 2);
+        resultJSON.put("Lng", latlngCenter[0]);
+        resultJSON.put("Lat", latlngCenter[1]);
 
 //        如果之前文件没有相应字段则创建
         int hasLength, hasHeight, hasID;
@@ -509,8 +509,7 @@ public class prepareData {
             }
             if (hasID == 0 || !feature.IsFieldSet("OBJECTID")) {
                 feature.SetField("OBJECTID", count);
-            }
-            else{
+            } else {
                 int featureID = feature.GetFieldAsInteger("OBJECTID");
                 maxID = featureID > maxID ? featureID : maxID;
             }
@@ -525,7 +524,7 @@ public class prepareData {
         dSource.SyncToDisk();
         dSource.delete();
 
-        resultJSON.put("maxID",maxID>count?maxID:count);
+        resultJSON.put("maxID", maxID > count ? maxID : count);
         return resultJSON;
     }
 }

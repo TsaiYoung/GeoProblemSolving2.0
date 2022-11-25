@@ -92,7 +92,7 @@ public class UserResController {
         String userId = (String) req.getSession().getAttribute("userId");
         String uid = delFileInfo.getString("uid");
         String paths = delFileInfo.getString("paths");
-        Boolean isFolder = delFileInfo.getBoolean("folder");
+        Boolean isFolder = delFileInfo.getBooleanValue("folder");
         String address = delFileInfo.getString("address");
         Integer resultCode = resService.delResPath(userId, address, uid, paths, isFolder);
         if (resultCode == 0) {
@@ -232,6 +232,9 @@ public class UserResController {
     public JsonResult getAllFileList(HttpServletRequest req) {
         String userId = (String) req.getSession().getAttribute("userId");
         JSONArray allFileList = resService.getAllFileList(userId);
+        if (allFileList == null){
+            return ResultUtils.error(-2, "Fail");
+        }
         return ResultUtils.success(allFileList);
     }
 

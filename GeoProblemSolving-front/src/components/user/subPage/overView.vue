@@ -34,7 +34,7 @@
               <Button shape="circle" icon="ios-arrow-forward" class="ovBtnHoverGray"></Button>
             </router-link>
           </div>
-          <span>You can manage resource upload by yourself</span>
+          <span>You can manage resources upload by yourself</span>
         </Card>
       </Col>
     </Row>
@@ -52,7 +52,7 @@
               <Button shape="circle" icon="ios-arrow-forward" class="ovBtnHoverGray"></Button>
             </router-link>
           </div>
-          <span>You can manage tool created by yourself</span>
+          <span>You can manage tools created by yourself</span>
         </Card>
       </Col>
       <Col span="9" offset="1">
@@ -67,7 +67,7 @@
               <Button shape="circle" icon="ios-arrow-forward" class="ovBtnHoverGray"></Button>
             </router-link>
           </div>
-          <span>You can manage your todo list</span>
+          <span>You can manage your task list</span>
         </Card>
       </Col>
     </Row>
@@ -85,7 +85,7 @@
               <Button shape="circle" icon="ios-arrow-forward" class="ovBtnHoverGray"></Button>
             </router-link>
           </div>
-          <span>You can manage tool created by yourself</span>
+          <span>You can manage tools created by yourself</span>
         </Card>
       </Col>
       <Col span="9" offset="1">
@@ -100,7 +100,7 @@
               <Button shape="circle" icon="ios-arrow-forward" class="ovBtnHoverGray"></Button>
             </router-link>
           </div>
-          <span>You can manage your message</span>
+          <span>You can manage your messages</span>
         </Card>
       </Col>
     </Row>

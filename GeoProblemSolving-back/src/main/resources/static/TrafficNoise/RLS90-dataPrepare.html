@@ -1,0 +1,426 @@
+<!doctype html>
+<html>
+<meta http-equiv="content-type" content="text/html" charset="utf-8">
+
+<head>
+    <title>Web RLS90</title>
+
+    <link rel="icon" href="./img/favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="./img/favicon.ico" type="image/x-icon" />
+
+    <link rel="stylesheet" href="./css/leaflet/leaflet.css" />
+    <link rel="stylesheet" href="./css/leaflet/leaflet.label.css" />
+    <link rel="stylesheet" href="./css/bootstrap/bootstrap.css" />
+    <link rel="stylesheet" href="css/navbar.css">
+    <link rel="stylesheet" href="./css/RLS90.css" />
+
+</head>
+
+<body>
+    <!-- content -->
+    <div id="container" class="content">
+        <div id="mapid" class="map">
+        </div>
+
+        <!-- <div class="modal fade myModal" id="loadDataModal" tabindex="-1" role="dialog" aria-labelledby="loadDataModal"
+            aria-hidden="true" data-backdrop="false" data-keyboard="true" data-show="true">
+            <div class="loadBackground"> </div>
+            <div class="modal-dialog modal-sm" style="z-index:1000;top:20%">
+                <div class="modal-content" id="loadDataContent">
+                    <form id="uploadForm" method="post" enctype="multipart/form-data" target="hiddenFrame">
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label class="control-label">道路文件</label>
+                                <input type="file" id="loadRoadFile" name="roadFile" multiple="multiple">
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">建筑物文件</label>
+                                <input type="file" id="loadBuildingFile" name="buildingFile" multiple="multiple">
+                            </div>
+                            <div class="form-group">
+                                <label class="control-label">道路声屏障文件</label>
+                                <input type="file" id="loadBarrierFile" name="barrierFile" multiple="multiple">
+                            </div>
+                            <div style="text-align: center;">
+                                <button type="button" class="btn btn-default" style="margin-right:3em"
+                                    onclick="onDemoClick()">
+                                    Demo
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    确认
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div> -->
+
+        <iframe name="hiddenFrame" style="display:none"></iframe>
+
+        <!-- UploadData -->
+        <div class="modal fade myModal" id="loadDataModal" tabindex="-1" role="dialog" aria-labelledby="loadDataModal"
+            aria-hidden="true" data-backdrop="false" data-keyboard="true">
+            <div class="loadBackground"> </div>
+            <div class="modal-dialog" style="z-index:1000;top:20%;width: 350px;">
+                <div class="modal-content" id="loadDataContent">
+                    <form id="uploadForm" method="post" enctype="multipart/form-data" target="hiddenFrame">
+                        <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-hidden="true" aria-label="Close">
+                                    <span>&times;</span>
+                                </button>
+                                <h4 class="modal-title" id="dataType">
+                                </h4>
+                            </div>
+                        <div class="modal-body">
+                            <div class="form-group">                                
+                                <select id="loadFile" style="width: 300px"></select>
+                                <label class="control-label">
+                                    <span style="color:red;font-weight: normal;" id="dataNote"></span>
+                                </label>
+                            </div>
+                            <div style="text-align: center;">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">
+                                    Close
+                                </button>
+                                <button type="submit" class="btn btn-primary" onclick="importData()">
+                                    Submit
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal -->
+        </div>
+
+        <!-- RoadConfig -->
+        <div class="modal fade myModal" id="roadConfigModal" tabindex="-1" role="dialog"
+            aria-labelledby="roadConfigModalLabel" aria-hidden="true" data-backdrop="false" data-keyboard="true">
+            <div class="modal-dialog modal-sm" style="z-index:1000;top:5%">
+                <div class="modal-content" id="roadCigContent">
+                    <div class="modal-header" id="roadConfigHeader">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true" aria-label="Close">
+                            <span>&times;</span>
+                        </button>
+                        <h4 class="modal-title" id="roadConfigModalLabel">
+                            Road Information
+                        </h4>
+                        <label class="col-xs-4 col-xs-offset-8 moadlHeaderLbl" id="roadName">Road Name</label>
+                        <label class="col-xs-4 col-xs-offset-8 moadlHeaderLbl" id="roadID">-1</label>
+                    </div>
+                    <div class="modal-body roadCig">
+                        <!-- 道路信息 -->
+                        <div id="roadInfo">
+                            <div class="form-group has-feedback">
+                                <label class="control-label">Length</label>
+                                <input type="text" class="form-control" id="roadLength" readonly>
+                                <span class="form-control-feedback">m</span>
+                            </div>
+                            <div class="form-group has-feedback">
+                                <label class="control-label">Width</label>
+                                <input type="text" class="form-control" id="roadWidth" onchange="paramChanged(this.id, this.value)">
+                                <span class="form-control-feedback">m</span>
+                            </div>
+
+                            <div class="form-group has-feedback">
+                                <label class="control-label">Slope</label>
+                                <input type="text" class="form-control" id="roadSlope" onchange="paramChanged(this.id, this.value)">
+                                <span class="form-control-feedback">%</span>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="control-label">Pavement Material</label>
+                                <select name="roadSurface" id="roadSurface" class="form-control" onchange="paramChanged(this.id, this.value)">
+                                    <!-- Smooth asphalt -->
+                                    <option name="smoothAsphalt" value="0">Smooth Asphalt Pavement</option>
+                                    <!-- Concrete Asphalt -->
+                                    <option name="concreteAsphalt" value="1">Concrete Asphalt Pavement</option>
+                                    <!-- Concrete -->
+                                    <option name="concrete" value="2">Concrete Pavement</option>
+                                    <!-- Smooth -->
+                                    <option name="smooth" value="3">Smooth Pavement</option>
+                                    <!-- Other -->
+                                    <option name="other" value="4">Other Pavement</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- 交通流信息 -->
+                        <div id="trafficInfo" style="display:none;">
+                            <div class="form-group has-feedback" style="margin-bottom:0">
+                                <label class="control-label">Traffic Information</label>
+                            </div>
+                            <div class="panel panel-default">
+                                <div class="panel-body">
+                                    <div class="form-group has-feedback">
+                                        <label class="control-label">Traffic flow</label>
+                                        <input type="text" class="form-control" id="roadM" onchange="paramChanged(this.id, this.value)">
+                                        <!-- <span class="form-control-feedback">辆</span> -->
+                                    </div>
+
+                                    <div class="form-group has-feedback">
+                                        <label class="control-label">Percentage of heavy vehicles</label>
+                                        <input type="text" class="form-control" id="roadP" onchange="paramChanged(this.id, this.value)">
+                                        <span class="form-control-feedback">%</span>
+                                    </div>
+
+                                    <div class="form-group has-feedback">
+                                        <label class="control-label">Cars speed limit</label>
+                                        <input type="text" class="form-control" id="carSpeed" onchange="paramChanged(this.id, this.value)">
+                                        <!-- 末尾添加空格 -->
+                                        <span class="form-control-feedback">km/h&nbsp</span>
+                                    </div>
+
+                                    <div class="form-group has-feedback">
+                                        <label class="control-label">Heavy vehicles speed limit</label>
+                                        <input type="text" class="form-control" id="truckSpeed">
+                                        <span class="form-control-feedback">km/h&nbsp</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 反射面信息 -->
+                        <div id="reflectInfo" style="display:none;margin-bottom: 1em">
+                            <label><input id="hasReflect" type="checkbox" style="width:1em" value=""
+                                    onclick="onHasReflectChanged(this.id)"> Have reflective surface?</label>
+                            <div class="panel panel-default" style="margin-bottom: 0;">
+                                <div id="reflect" class="panel-body">
+                                    <div class="form-group has-feedback">
+                                        <label class="control-label">Height of reflective surface</label>
+                                        <input type="text" class="form-control" id="reflectHeight" onchange="paramChanged(this.id, this.value)" disabled="disable">
+                                        <span class="form-control-feedback">m</span>
+                                    </div>
+                                    <div class="form-group has-feedback">
+                                        <label class="control-label">Width between reflective surface</label>
+                                        <input type="text" class="form-control" id="reflectWidth" onchange="paramChanged(this.id, this.value)" disabled="disable">
+                                        <span class="form-control-feedback">m</span>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="control-label">Is sound absorbing material?</label>
+                                        <select name="isAbsorb" id="isAbsorb" class="form-control" onchange="paramChanged(this.id, this.value)" disabled="disable">
+                                            <option name="yes" value="1">Yes</option>
+                                            <option name="no" value="0">No</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="pageTurning">
+                            <ul>
+                                <li>
+                                    <span class="disabled"><a id="previousInfo" href="javastript:void(0)"
+                                            onclick="showInfo.call($('#previousInfo'))">Previous</a></span>
+                                    <div></div>
+                                    <span><a id="nextInfo" href="javastript:void(0)"
+                                            onclick="showInfo.call($('#nextInfo'))">Next</a></span>
+                                </li>
+
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Close
+                        </button>
+
+                        <button type="button" class="btn btn-primary" onclick="onSetRoadInfoClick()" id="roadInfoSubmit">
+                            Submit
+                        </button>
+                    </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal -->
+        </div>
+
+        <!-- BuildingConfig -->
+        <div class="modal fade myModal" id="buildingConfigModal" tabindex="-1" role="dialog"
+            aria-labelledby="buildingConfigModal" aria-hidden="true" data-backdrop="false" data-keyboard="true">
+            <div class="modal-dialog modal-sm" style="z-index:1000;top:15%">
+                <div class="modal-content" id="buildingCigContent">
+                    <div class="modal-header" id="buildingConfigHeader">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true" aria-label="Close">
+                            <span>&times;</span>
+                        </button>
+                        <h4 class="modal-title" id="buildingConfigModalLabel">
+                            Building Information
+                        </h4>
+                        <label class="col-xs-4 col-xs-offset-8 moadlHeaderLbl" id="buildingID">-1</label>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group has-feedback">
+                            <label class="control-label">Building Storey</label>
+                            <input type="text" class="form-control" id="buildingStorey" onchange="paramChanged(this.id, this.value)">
+                            <!-- <span class="form-control-feedback">层</span> -->
+                        </div>
+
+                        <div class="form-group has-feedback">
+                            <label class="control-label">Height</label>
+                            <input type="text" class="form-control" id="buildingHeight" onchange="paramChanged(this.id, this.value)">
+                            <span class="form-control-feedback">m</span>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">
+                            Close
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="onSetBuildingInfoClick()"  id="buildingInfoSubmit">
+                            Submit
+                        </button>
+                    </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal -->
+        </div>
+
+        <!-- BarrierConfig -->
+        <div class="modal fade myModal" id="barrierConfigModal" tabindex="-1" role="dialog"
+            aria-labelledby="buildingConfigModal" aria-hidden="true" data-backdrop="false" data-keyboard="true">
+            <div class="modal-dialog modal-sm" style="z-index:1000;top:15%">
+                <div class="modal-content" id="barrierCigContent">
+                    <div class="modal-header" id="barrierConfigHeader">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true" aria-label="Close">
+                            <span>&times;</span>
+                        </button>
+                        <h4 class="modal-title" id="barrierConfigModalLabel">
+                            Road Barrier Information
+                        </h4>
+                        <label class="col-xs-4 col-xs-offset-8 moadlHeaderLbl" id="barrierID">-1</label>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group has-feedback">
+                            <label class="control-label">Length</label>
+                            <input type="text" class="form-control" id="barrierLength" onchange="paramChanged(this.id, this.value)">
+                            <span class="form-control-feedback">m</span>
+                        </div>
+
+                        <div class="form-group has-feedback">
+                            <label class="control-label">Height</label>
+                            <input type="text" class="form-control" id="barrierHeight" onchange="paramChanged(this.id, this.value)">
+                            <span class="form-control-feedback">m</span>
+                        </div>
+
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">
+                            Close
+                        </button>
+                        <button type="button" class="btn btn-primary" onclick="onSetBarrierInfoClick()" id="barrierInfoSubmit">
+                            Submit
+                        </button>
+                    </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal -->
+        </div>
+
+        <!-- BrforeRun -->
+        <div class="modal fade myModal" id="brforeRunModal" tabindex="-1" role="dialog" aria-labelledby="brforeRunModal"
+            aria-hidden="true" data-backdrop="false" data-keyboard="true">
+            <div class="modal-dialog modal-sm" style="z-index:1000;top:20%">
+                <div class="modal-content" id="beforeRunContent">
+                    <div class="modal-body">
+
+                        <div class="form-group has-feedback">
+                            <label class="control-label">Sample Size</label>
+                            <input type="text" class="form-control" id="sampleSize"  onchange="paramChanged(this.id, this.value)">
+                            <span class="form-control-feedback">m</span>
+                        </div>
+
+                        <div class="form-group has-feedback">
+                            <label class="control-label">Height of ROI</label>
+                            <input type="text" class="form-control" id="ROIHeight"  onchange="paramChanged(this.id, this.value)">
+                            <span class="form-control-feedback">m</span>
+                        </div>
+                        <div style="margin-left: 50%;">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="onRunModel()" id="runModelBtn">
+                                Run
+                            </button>
+                        </div>
+                    </div>
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal -->
+        </div>
+
+        <div id="waitting" class="waitting">
+            <img src="./img/Wait.jpg">
+        </div>
+
+        <table id="operateTable">
+
+            <tr>
+                <td>
+                    <input type="button" class="imgButton" style="background:  url(./img/ico/Mouse.png);" title="Pointer"
+                        onclick="onMouseClick()">
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="button" class="imgButton" style="background:  url(./img/ico/Info.png);" title="Edit information"
+                        onclick="onEditInfoClick()">
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="button" class="imgButton" style="background: url(./img/ico/Select.png);" title="Select the simulation area"
+                        onclick="onSelectClick()">
+                </td>
+            </tr>
+<!--            <tr>-->
+<!--                <td>-->
+<!--                    <input type="button" class="imgButton" style="background: url(./img/ico/Run.png);" title="Run"-->
+<!--                        onclick="onBeforeRun()">-->
+<!--                </td>-->
+<!--            </tr>-->
+            <tr>
+                <td>
+                    <input type="button" class="imgButton" style="background: url(./img/ico/Clean.png);" title="Clear"
+                        onclick="onCleanClick()">
+                </td>
+            </tr>
+
+<!--            <tr>-->
+<!--                <td>-->
+<!--                    <input type="button" class="imgButton" style="background: url(./img/ico/Road.png);" title="新建道路要素"-->
+<!--                        onclick="onCreateRoadClick()">-->
+<!--                </td>-->
+<!--            </tr>-->
+
+<!--            <tr>-->
+<!--                <td>-->
+<!--                    <input type="button" class="imgButton" style="background: url(./img/ico/Building.png);"-->
+<!--                        title="新建建筑物要素" onclick="onCreateBuildingClick()">-->
+<!--                </td>-->
+<!--            </tr>-->
+<!--            <tr>-->
+<!--                <td>-->
+<!--                    <input type="button" class="imgButton" style="background: url(./img/ico/Edit.png);" title="编辑图层"-->
+<!--                        onclick="onEditFeatureClick()">-->
+<!--                </td>-->
+<!--            </tr>-->
+        </table>
+    </div>
+</body>
+
+<script src="./js/jquery/jquery-3.3.1.min.js"></script>
+<script src="./js/jquery/jquery.form.js"></script>
+<script src="./js/bootstrap/bootstrap.min.js"></script>
+<script src="./js/jquery-ui/jquery-ui.min.js"></script>
+
+<script src="./js/leaflet/leaflet-geotiff/leaflet.js"></script>
+
+<!-- tif -->
+<script src="./js/leaflet/leaflet-geotiff/geotiff.js"></script>
+<script src="./js/leaflet/leaflet-geotiff/plotty.js"></script>
+<script src="./js/leaflet/leaflet-geotiff/leaflet-geotiff.js"></script>
+
+<!-- edit -->
+<script src="./js/leaflet/Leaflet.Editable.min.js"></script>
+
+<!-- proj4 -->
+<script src="./js/leaflet/proj4.js"></script>
+<script src="./js/leaflet/proj4leaflet.js"></script>
+<script src="./js/leaflet/Path.Drag.js"></script>
+
+<script src="./js/shp/shapefile.js"></script>
+<script src="./js/RLS90.js"></script>
+
+</html>

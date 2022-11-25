@@ -21,8 +21,7 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.*;
 
 @Repository
 public class UserDaoImpl implements UserDao {
@@ -276,5 +275,19 @@ public class UserDaoImpl implements UserDao {
                 Criteria.where("userId").is(filed));
         Query query = new Query(criteria);
         return mongoTemplate.findOne(query, UserEntity.class);
+    }
+
+    @Override
+    public List<UserEntity> findUsers(Set<String> userIds) {
+        Query query = new Query();
+        if (userIds == null || userIds.isEmpty()) return null;
+        Criteria criteria = new Criteria();
+        List<Criteria> criteriaList = new ArrayList<>();
+        for (String item : userIds){
+            criteriaList.add(Criteria.where("userId").is(item));
+        }
+        criteria.orOperator(criteriaList.stream().toArray(Criteria[]::new));
+        query.addCriteria(criteria);
+        return mongoTemplate.find(query, UserEntity.class);
     }
 }

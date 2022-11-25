@@ -107,7 +107,7 @@ export default {
       this.configFile = configFile;
       this.uploadFileForm.append("files", configFile);
     },
-    
+
     onBeforeUpload(){
       this.createAndUploadParamFile();
     },

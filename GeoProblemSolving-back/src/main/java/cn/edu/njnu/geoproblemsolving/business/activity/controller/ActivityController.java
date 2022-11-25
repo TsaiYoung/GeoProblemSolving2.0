@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashSet;
+
 @CrossOrigin(origins = "*", allowCredentials = "true")
 @RestController
 @RequestMapping("/activity")
@@ -110,6 +112,17 @@ public class ActivityController {
     }
 
     /**
+     * join an activity
+     * @param aid
+     * @param userIds
+     * @return
+     */
+    @RequestMapping(value = "/{aid}/userBatch", method = RequestMethod.POST)
+    public JsonResult joinProjectBatch(@PathVariable String aid, @RequestParam HashSet<String> userIds) {
+        return activityService.joinActivity(aid, userIds);
+    }
+
+    /**
      * change the role of member
      * @param aid
      * @param userId
@@ -177,28 +190,4 @@ public class ActivityController {
 //        logger.info("separateActivities");
 //        return activityService.separateActivities(update, aid1, aid2);
 //    }
-
-    /**
-     * Join activity
-     * @param aid
-     * @param userId
-     * @return
-     */
-    @RequestMapping(method = RequestMethod.GET, value = "/join")
-    public JsonResult joinActivity(@RequestParam("aid") String aid, @RequestParam("userId") String userId) {
-        logger.info("joinActivity");
-        return activityService.joinActivity(aid, userId);
-    }
-
-    /**
-     * Leave the activity
-     * @param aid
-     * @param userId
-     * @return
-     */
-    @RequestMapping(method = RequestMethod.GET, value = "/quit")
-    public JsonResult quitActivity(@RequestParam("aid") String aid, @RequestParam("userId") String userId) {
-        logger.info("quitActivity");
-        return activityService.quitActivity(aid, userId);
-    }
 }

@@ -66,7 +66,7 @@ public class ComputableModelDaoImpl implements ComputableModelDao {
                         .dataTemplate(fileDataTemplate)
                         .des(obj.getString("description"))
                         .name(obj.getString("name"))
-                        .isOptional(obj.getBoolean("optional"))
+                        .isOptional(obj.getBooleanValue("optional"))
                         .ioFlagEnum(obj.getString("type").equals("response") ? IOFlagEnum.INPUT : IOFlagEnum.OUTPUT)
                         .build();
 

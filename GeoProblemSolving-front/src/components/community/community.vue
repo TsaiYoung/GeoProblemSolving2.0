@@ -31,8 +31,8 @@
                   <span>
                     <Tag
                       color="primary"
-                      v-for="tag in item.tags"
-                      :key="item.index"
+                      v-for="(tag,idx) in item.tags"
+                      :key="idx"
                       class="tag"
                     >{{tag}}</Tag>
                   </span>
@@ -55,8 +55,6 @@
                   <Modal
                     v-model="modal1"
                     title="Leave your comment about this topic"
-                    @on-ok=""
-                    @on-cancel=""
                   >
                     <Input
                       v-model="commentContent"

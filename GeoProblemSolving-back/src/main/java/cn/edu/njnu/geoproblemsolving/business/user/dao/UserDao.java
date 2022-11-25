@@ -7,6 +7,9 @@ import com.alibaba.fastjson.JSONObject;
 import org.springframework.data.mongodb.core.query.Update;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 public interface UserDao {
     Object findUserById(String userId);
@@ -49,5 +52,7 @@ public interface UserDao {
     UserEntity updateInfo(String id, Update update);
 
     UserEntity findUserByIdOrEmail(String filed);
+
+    List<UserEntity> findUsers(Set<String> userIds);
 
 }

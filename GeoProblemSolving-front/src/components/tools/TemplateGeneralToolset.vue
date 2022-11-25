@@ -403,7 +403,7 @@ export default {
       for( let i = 0 ; i < indexList.length ; i++){
         this.toolsetInfo.toolList.push(this.personalToolList[indexList[i]]);
       }
-      console.log(this.toolsetInfo.toolList);
+      // console.log(this.toolsetInfo.toolList);
     }
   },
 

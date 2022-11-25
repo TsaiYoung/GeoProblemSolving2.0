@@ -19,7 +19,7 @@
       <Collapse simple v-model="unfold" class="panel">
           <Panel name="tool">
             Toolbox
-            <tool-box slot="content" :activityInfo="activityInfo" :projectInfo="projectInfo"></tool-box>
+            <tool-box slot="content" :activityInfo="activityInfo" :projectInfo="projectInfo" ref="ToolBox"></tool-box>
           </Panel>
           <Panel name="data">
             Resource list

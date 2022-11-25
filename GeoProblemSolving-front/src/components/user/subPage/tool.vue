@@ -3,7 +3,7 @@
     <div id="title">
       <h1 style="text-align: center; margin-top: 10px">Tool</h1>
       <h3 style="text-align: center; margin-bottom: 10px">
-        you can manage your tools here
+        You can manage your tools here
       </h3>
     </div>
     <Row>
@@ -608,6 +608,7 @@
       <template-general-toolset
         @generalInfo="getGeneralInfo"
         :step="currentStep"
+        :info="toolInfo"
       ></template-general-toolset>
       <div slot="footer">
         <Button
@@ -633,6 +634,7 @@
       <template-general
         @generalInfo="getGeneralInfo"
         :step="currentStep"
+        :info="toolInfo"
       ></template-general>
       <div slot="footer">
         <Button
@@ -991,7 +993,6 @@ export default {
       }
     },
 
-    //？？？？？why getUserProjects
     getUserProjects: function () {
       let projectIds = "";
       let userInfo = this.$store.getters.userInfo;
@@ -1064,7 +1065,6 @@ export default {
             this.$router.push({ name: "Login" });
           } else if (res.data.code == 0) {
             let tempTools = res.data.data;
-            console.log(res.data.data);
 
             for (let i = 0; i < tempTools.length; i++) {
               if (
@@ -1110,7 +1110,7 @@ export default {
     },
     createTool: async function () {
       let createToolForm = this.toolInfo;
-      console.log(createToolForm);
+      // console.log(createToolForm);
       if (createToolForm.backendType == "" || createToolForm.toolName == "") {
         this.$Notice.error({
           title: "Crate failed",
@@ -1118,9 +1118,6 @@ export default {
         });
       } else {
         this.loading = true;
-        setTimeout(() => {
-          this.loading = false;
-        }, 2000);
         createToolForm["provider"] = this.$store.getters.userId;
         // let data = await post("/GeoProblemSolving/tool", createToolForm);
         if (createToolForm.toolSet == true) {
@@ -1160,9 +1157,11 @@ export default {
                   });
                 }
               }
+              this.loading = false;
             })
             .catch((err) => {
               this.$Notice.error({ title: "Create failed" });
+              this.loading = false;
             });
         } else {
           this.axios
@@ -1170,6 +1169,7 @@ export default {
             .then((res) => {
               // ？？？ 判断返回值，进行下一步操作
               if (res.data.code == 0) {
+                this.loading = false;
                 this.createToolModal = false;
                 this.editToolInfo = {};
                 this.toolInfo = {};
@@ -1189,10 +1189,14 @@ export default {
                     desc: "No Corresponding service",
                   });
                 }
+              }else {
+                this.$Notice.error({ title: "Create failed" });
               }
+              this.loading = false;
             })
             .catch((err) => {
               this.$Notice.error({ title: "Create failed" });
+              this.loading = false;
             });
         }
       }
@@ -1395,10 +1399,40 @@ export default {
     },
     createToolModalShow() {
       this.chooseCreateModal = false;
+      this.toolInfo = {
+        toolName: "",
+        modelInfo: {
+          stateId: "",
+          oid: "",
+          mdlId: "",
+        },
+        description: "",
+        toolUrl: "",
+        recomStep: [],
+        categoryTag: [],
+        toolImg: "",
+        privacy: "Private",
+        detail: "",
+      };
       this.createToolModal = true;
     },
     createToolsetModalShow() {
       this.chooseCreateModal = false;
+      this.toolInfo = {
+        toolName: "",
+        modelInfo: {
+          stateId: "",
+          oid: "",
+          mdlId: "",
+        },
+        description: "",
+        toolUrl: "",
+        recomStep: [],
+        categoryTag: [],
+        toolImg: "",
+        privacy: "Private",
+        detail: "",
+      };
       this.createToolsetModal = true;
     },
     getToolList(list) {

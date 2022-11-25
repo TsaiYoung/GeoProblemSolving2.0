@@ -197,7 +197,7 @@
                 closable
                 @on-close="deleteCreateToolTag(index)"
                 >{{ item }}</Tag
-              
+
                 >
               </div>
               <div>
@@ -248,7 +248,7 @@
                 </div>
                 <Modal title="View Image" v-model="visible">
                   <img :src="img" v-if="visible" style="width: 100%" />
-                </Modal>  
+                </Modal>
               </div>
             </FormItem>
           </div>
@@ -259,7 +259,7 @@
           </div>
         </Form>
       </div>
-      
+
       <div v-else>
         <Form
         ref="selectedTool"
@@ -394,7 +394,7 @@
                     <div style="width: 58px; height: 58px; line-height: 58px">
                       <Icon type="ios-camera" size="20"></Icon>
                     </div>
-                  </Upload> -->      
+                  </Upload> -->
               </div>
             </FormItem>
           </div>
@@ -404,7 +404,7 @@
             </FormItem>
           </div>
         </Form>
-      </div>      
+      </div>
     </Row>
   </div>
 </template>
@@ -519,10 +519,10 @@ export default {
 
     deleteCreateToolTag(index) {
       if(this.selectedTool.toolSet == false){
-        this.selectedTool.tags.splice(index, 1); 
+        this.selectedTool.tags.splice(index, 1);
       } else {
         this.selectedTool.tags.splice(index, 1);
-      }    
+      }
     },
     querryTools: function () {
       this.axios
@@ -537,7 +537,7 @@ export default {
               if(tools[i].toolSet == false){
                 this.personalToolList.push(tools[i]);
               }
-            } 
+            }
           }
         })
         .catch((err) => {
@@ -559,7 +559,7 @@ export default {
         reader.onload = (e) => {
           this.img = e.target.result;
           if(this.selectedTool.toolSet == false){
-            this.selectedTool.toolImg = this.img; 
+            this.selectedTool.toolImg = this.img;
           } else {
             this.selectedTool.toolImg = this.img;
           }
@@ -574,7 +574,7 @@ export default {
     handleRemove() {
       this.img = "";
       if(this.selectedTool.toolSet == false){
-        this.selectedTool.toolImg =""; 
+        this.selectedTool.toolImg ="";
       } else {
         this.selectedTool.toolImg ="";
       }

@@ -163,7 +163,7 @@ export default {
       },
     };
   },
-  methods: { 
+  methods: {
     async submitForm() {
       if (this.postForm.name == "") {
         this.$Notice.success({

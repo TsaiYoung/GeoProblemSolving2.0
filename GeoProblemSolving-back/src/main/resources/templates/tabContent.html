@@ -161,7 +161,7 @@
                 </Alert>
                 <i-button v-show="!UserState" type="success" @click="login">Log in</i-button>
                 <i-button
-                        v-show="!selectedProjectInfo.isMember&&!selectedProjectInfo.isManager && UserState && selectedProjectInfo.privacy=='Public'"
+                        v-show="!selectedProjectInfo.isMember&&!selectedProjectInfo.isManager && UserState && selectedProjectInfo.privacy=='Public' "
                         type="success"
                         title="Enter the project and check it"
                         @click="enterProject(selectedProjectInfo)"
@@ -170,7 +170,7 @@
                 <i-button
                         type="success"
                         @click="joinApplyModalShow(selectedProjectInfo)"
-                        v-show="!selectedProjectInfo.isMember&&!selectedProjectInfo.isManager&&UserState"
+                        v-show="!selectedProjectInfo.isMember&&!selectedProjectInfo.isManager&&UserState && userInfo.userId.length < 40"
                         title="Apply to join the project"
                 >Apply
                 </i-button>
@@ -333,7 +333,7 @@
 
                             // join the project directly
                             let url = "/GeoProblemSolving/project/" + this.applyProjectInfo.aid + "/user?userId=" + this.userInfo.userId;
-                            this.axios
+                            axios
                                 .post(url)
                                 .then((res) => {
                                     if (res.data.code == 0) {

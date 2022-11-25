@@ -177,7 +177,11 @@
             >
               <div style="display: flex; align-items: center">
                 <div
-                  v-if="delUserBtn && member.userId != userInfo.userId"
+                  v-if="
+                    delUserBtn &&
+                    member.userId != userInfo.userId &&
+                    roleCompare(userRole, member.role) == 1
+                  "
                   style="cursor: pointer; margin-right: 10px"
                   @click="selectMember(member, 'delete')"
                 >
@@ -187,7 +191,7 @@
                   v-if="
                     userRoleBtn &&
                     member.userId != userInfo.userId &&
-                    roleCompare(userRole, member.role) != -1
+                    roleCompare(userRole, member.role) == 1
                   "
                   title="Set user role"
                   style="cursor: pointer; margin-right: 10px"
@@ -199,7 +203,7 @@
                   v-if="
                     userRoleBtn &&
                     (member.userId == userInfo.userId ||
-                      roleCompare(userRole, member.role) == -1)
+                      roleCompare(userRole, member.role) != 1)
                   "
                   :title="
                     member.role.charAt(0).toUpperCase() + member.role.slice(1)
@@ -342,7 +346,7 @@
 import { get, del, post, put } from "@/axios";
 import Avatar from "vue-avatar";
 export default {
-  props: ["activityInfo","projectInfo"],
+  props: ["activityInfo", "projectInfo"],
   components: {
     Avatar,
   },
@@ -379,8 +383,7 @@ export default {
       listStyle: { width: "280px", height: "360px" },
     };
   },
-  computed: {
-  },
+  computed: {},
   created() {
     this.userRole = this.roleIdentity(this.activityInfo);
     // this.getProjectInfo(); //通过传值代替
@@ -496,6 +499,7 @@ export default {
         return;
       }
       let data = await get(url);
+      console.log(data);
 
       this.potentialMembers = [];
       this.invitingMembers = [];
@@ -504,6 +508,7 @@ export default {
         this.potentialMembers.push({
           key: this.potentialMembers.length,
           userId: candidates[i].userId,
+          avatar: candidates[i].avatar,
           name: candidates[i].name,
           role: candidates[i].role,
           domain: candidates[i].domain,
@@ -522,6 +527,7 @@ export default {
     },
     memberRender(item) {
       return `<span title="${item.name} - ${item.role}">${item.name} - ${item.role}</span>`;
+      // return `<span title="${item.name} - ${item.role}">${item.name}</span>`;
     },
     filterMethod(data, query) {
       return data.name.indexOf(query) > -1;
@@ -531,46 +537,54 @@ export default {
     },
     inviteMembers() {
       let activity = this.activityInfo;
+      let inviteList = [];
 
       // add members
       for (var i = 0; i < this.invitingMembers.length; i++) {
         let index = this.invitingMembers[i];
         if (this.participants.contains(this.potentialMembers[index])) continue;
-
         let user = this.potentialMembers[index];
-        let url = "";
-        if (activity.level == 1) {
-          url =
-            "/GeoProblemSolving/subproject/" +
-            activity.aid +
-            "/user?userId=" +
-            user.userId;
-        } else if (activity.level > 1) {
-          url =
-            "/GeoProblemSolving/activity/" +
-            activity.aid +
-            "/user?userId=" +
-            user.userId;
-        } else {
-          return;
-        }
+        inviteList.push(user.userId);
+      }
 
-        this.axios
-          .post(url)
-          .then((res) => {
-            if (res.data.code == 0) {
+      let url = "";
+      if (activity.level == 1) {
+        url =
+          "/GeoProblemSolving/subproject/" +
+          activity.aid +
+          "/userBatch?userIds=" +
+          inviteList.toString();
+      } else if (activity.level > 1) {
+        url =
+          "/GeoProblemSolving/activity/" +
+          activity.aid +
+          "/userBatch?userIds=" +
+          inviteList.toString();
+      } else {
+        return;
+      }
+
+      this.axios
+        .post(url)
+        .then((res) => {
+          if (res.data.code == 0) {
+            for (var i = 0; i < this.invitingMembers.length; i++) {
+              let index = this.invitingMembers[i];
+              if (this.participants.contains(this.potentialMembers[index]))
+                continue;
+              let user = this.potentialMembers[index];
               this.participants.push(user);
               this.$Notice.info({ desc: "Invite member successfully" });
 
               // update activity doc
-              this.operationApi.participantUpdate(
-                activity.aid,
-                "invite",
-                user.userId,
-                user.name,
-                user.role,
-                user.domain
-              );
+              // this.operationApi.participantUpdate(
+              //   activity.aid,
+              //   "join",
+              //   user.userId,
+              //   user.name,s
+              //   "ordinary-member",
+              //   user.domain
+              // );
 
               //notice
               let notice = {
@@ -597,14 +611,14 @@ export default {
                 },
               };
               this.sendNotice(notice);
-            } else {
-              console.log(res.data.msg);
             }
-          })
-          .catch((err) => {
-            throw err;
-          });
-      }
+          } else {
+            console.log(res.data.msg);
+          }
+        })
+        .catch((err) => {
+          throw err;
+        });
     },
     updateUserRole() {
       let member = this.slctRoleMember;
@@ -645,6 +659,7 @@ export default {
         .put(url)
         .then((res) => {
           if (res.data.code == 0) {
+            this.slctRoleMember = role;
             this.$Notice.info({ desc: "Change the member role successfully" });
             // update activity doc
             this.operationApi.participantUpdate(
@@ -652,8 +667,8 @@ export default {
               "role",
               member.userId,
               member.name,
-              member.role,
-              user.domain
+              role,
+              member.domain
             );
             this.getParticipants();
 

@@ -104,6 +104,7 @@ function selectData(dataType) {
     $("#content-iframe").get(0).contentWindow.selectData(dataType);
 }
 
+
 $(function () {
     $(window).resize(function () {
         if (document.body.clientWidth < 900) {

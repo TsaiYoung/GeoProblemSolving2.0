@@ -227,9 +227,23 @@
         // },
       }
     },
+    created() {
+    },
     mounted() {
       this.reSize();
       window.addEventListener("resize", this.reSize);
+
+      //判断是否是临时用户
+      let userId = JSON.parse(sessionStorage.getItem("userInfo")).userId;
+      if(userId.length >= 40){
+        this.$Message.warning({
+          content: 'You are using a temporary account, please use your personal space after logging in.',
+          duration: 15,
+          closable: true
+        });
+        this.$store.commit("userLogout");
+        this.$router.push({ name: "Login" });
+      }
     },
     beforeDestroy: function () {
       window.removeEventListener("resize", this.reSize);

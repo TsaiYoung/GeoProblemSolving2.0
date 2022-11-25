@@ -35,7 +35,7 @@
             <FormItem label="Email">
               <Input v-model="email" disabled style="width: 600px"></Input>
             </FormItem>
-            
+
             <div
               v-if="registeredHintShow"
               style="
@@ -179,7 +179,7 @@
 
         //有登录状态,直接 T 就行，反正不管是不是被邀请这都是要输入密码的
         //判断此账户是否注册，若未注册则快速注册
-        
+
         if (this.$store.getters.userState) {
           this.axios
             .get("/GeoProblemSolving/user/logout")

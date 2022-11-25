@@ -15,11 +15,12 @@ public class MsgRecords {
     @Id
     private String recordId;
 
+
     private String aid; //查询条件Id
 
     private ArrayList<String> records;
 
-    private ArrayList<JSONObject> participants;
+    private ArrayList<String> participants;
 
     private Date createdTime;
 }

@@ -523,7 +523,6 @@ export default {
     },
 
     queryServiceByEmail: function (value) {
-      console.log(value);
       if (value == "modelItem") {
         this.axios
           .get("/GeoProblemSolving/tool/computableModel/public/0/50")
@@ -640,7 +639,6 @@ export default {
     },
     info: {
       handler(val) {
-        // console.log(val);
         if (val != "") {
           this.toolInfo = val;
         }

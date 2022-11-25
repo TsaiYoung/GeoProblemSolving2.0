@@ -21,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
@@ -195,9 +196,17 @@ public class DataIContainerService {
 
     public Integer initDataService(String token) {
         //查看节点是否在线
+        JSONObject onlineStatus = null;
         RestTemplate restTemplate = new RestTemplate();
         String urlStr = "http://111.229.14.128:8898/state?token=" + URLEncoder.encode(token);
-        JSONObject onlineStatus = restTemplate.getForObject(urlStr, JSONObject.class);
+        try {
+            onlineStatus  = restTemplate.getForObject(urlStr, JSONObject.class);
+        }catch (HttpClientErrorException e){
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-Type", "application/json");
+            HttpEntity<JSONObject> httpEntity = new HttpEntity<>(headers);
+            onlineStatus = restTemplate.exchange(urlStr, HttpMethod.GET, httpEntity, JSONObject.class).getBody();
+        }
         return onlineStatus.getInteger("code");
     }
 }

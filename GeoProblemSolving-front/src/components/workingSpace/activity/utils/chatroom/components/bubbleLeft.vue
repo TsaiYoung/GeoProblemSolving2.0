@@ -196,7 +196,7 @@ export default {
   position: relative;
   margin: 12px;
   padding: 10px;
-  word-break: break-all;
+  word-break: break-word;
   background: #fff;
   border: 1px solid #fff;
   border-radius: 5px;
@@ -204,7 +204,7 @@ export default {
   /* min-width: 20%; */
   float: left;
 
-  max-width: 90%;
+  max-width: 100%;
 }
 .pop-content {
   font-size: 14px;

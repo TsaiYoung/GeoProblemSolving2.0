@@ -113,7 +113,7 @@ public class AbseirSocket {
             memberList.add(user);
         }
         messageMember.put("type", messageType);
-        messageMember.put("userList", memberList.toJSONString());
+        messageMember.put("userList", memberList.toString());
 
         try {
             //向客户端发送消息

@@ -70,7 +70,7 @@ public class uploadBarrierServlet extends HttpServlet {
                 respJson.put("url", "\\GeoProblemSolving\\" + zipUrl + "Barrier");
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            System.err.println(e.getMessage());
         }
         return respJson.toString();
     }

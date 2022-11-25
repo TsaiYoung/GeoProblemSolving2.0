@@ -490,7 +490,7 @@
     <Modal v-model="infoModal" title="Info of the toolset or tool" width="400">
       <div class="api">
         <table>
-          <thead style="background-color:#f8f8f9; ">
+          <thead style="background-color: #f8f8f9">
             <tr>
               <th>Title</th>
               <th>Info</th>
@@ -591,23 +591,13 @@ export default {
     // },
   },
   created() {},
-  mounted() {
-    // Array.prototype.contains = function (obj) {
-    //   var i = this.length;
-    //   while (i--) {
-    //     if (
-    //       (this[i].tid != undefined && this[i].tid === obj) ||
-    //       (this[i] != undefined && this[i] === obj)
-    //     ) {
-    //       return true;
-    //     }
-    //   }
-    //   return false;
-    // };
-  },
+  mounted() {},
   methods: {
     stepToolModalShow() {
-      this.toolIdList = this.activityInfo.toolList;
+      this.toolIdList =
+        this.activityInfo.toolList != undefined
+          ? this.activityInfo.toolList
+          : [];
       this.getAllListInfo();
       this.typeSelected = "All";
       this.showMenuItem = "allToolsets";
@@ -622,9 +612,7 @@ export default {
       this.filterShowListByType();
     },
     async getPublicTools() {
-      let data = await get(
-        "/GeoProblemSolving/tool/privacy/Public"
-      );
+      let data = await get("/GeoProblemSolving/tool/privacy/Public");
       this.$set(this, "publicTools", data);
     },
     async getPersonalTools() {
@@ -634,32 +622,26 @@ export default {
 
       this.$set(this, "personalTools", data);
     },
-    isToolIdList(tid){
-      // for(let i = 0 ; i < this.toolIdList.length ; i++){
-      //   if(this.toolIdList[i] == tid){
-      //     return true;
-      //   }
-      // }
-      // return false;
-      return this.toolIdList.contains(tid);
+    isToolIdList(tid) {
+      if (this.toolIdList != undefined) {
+        return this.toolIdList.contains(tid);
+      } else {
+        return false;
+      }
     },
-    isStepToolsetsShow(tid){
-      // for(let i = 0 ; i < this.stepToolsetsShow.length ; i++){
-      //   if(this.stepToolsetsShow[i].tid == tid){
-      //     return true;
-      //   }
-      // }
-      // return false;
-      return this.stepToolsetsShow.contains(tid);
+    isStepToolsetsShow(tid) {
+      if (this.stepToolsetsShow != undefined) {
+        return this.stepToolsetsShow.contains(tid);
+      } else {
+        return false;
+      }
     },
-    isStepToolsShow(tid){
-      // for(let i = 0 ; i < this.stepToolsShow.length ; i++){
-      //   if(this.stepToolsShow[i].tid == tid){
-      //     return true;
-      //   }
-      // }
-      // return false;
-      return this.stepToolsShow.contains(tid);
+    isStepToolsShow(tid) {
+      if (this.stepToolsShow != undefined) {
+        return this.stepToolsShow.contains(tid);
+      } else {
+        return false;
+      }
     },
     filterDuplicateTools() {
       // public tools and toolsets
@@ -668,7 +650,7 @@ export default {
       let toolsShow = [];
       let toolsetsShow = [];
       for (let i = 0; i < this.publicTools.length; i++) {
-        if ( this.publicTools[i].toolSet == true ) {
+        if (this.publicTools[i].toolSet == true) {
           if (this.isToolIdList(this.publicTools[i].tid) == false) {
             toolsets.push(this.publicTools[i]);
           } else {
@@ -682,10 +664,10 @@ export default {
           }
         }
       }
-      this.publicTools = tools;
-      this.publicToolsets = toolsets;
-      this.stepToolsetsShow = toolsetsShow;
-      this.stepToolsShow = toolsShow;
+      this.publicTools = Object.assign([], tools);
+      this.publicToolsets = Object.assign([], toolsets);
+      this.stepToolsetsShow = Object.assign([], toolsetsShow);
+      this.stepToolsShow = Object.assign([], toolsShow);
 
       // personal tools and toolsets
       tools = [];
@@ -694,28 +676,34 @@ export default {
       toolsetsShow = [];
       for (var i = this.personalTools.length - 1; i >= 0; i--) {
         if (this.personalTools[i].toolSet == true) {
-          if (this.isToolIdList(this.personalTools[i].tid) == false ) {
+          if (this.isToolIdList(this.personalTools[i].tid) == false) {
             toolsets.push(this.personalTools[i]);
-          } else if( this.isStepToolsetsShow(this.personalTools[i].tid) == false){
+          } else if (
+            this.isStepToolsetsShow(this.personalTools[i].tid) == false
+          ) {
             toolsetsShow.push(this.personalTools[i]);
           }
         } else {
           if (this.isToolIdList(this.personalTools[i].tid) == false) {
             tools.push(this.personalTools[i]);
-          } else if(this.isStepToolsShow(this.personalTools[i].tid) == false) {
+          } else if (this.isStepToolsShow(this.personalTools[i].tid) == false) {
             toolsShow.push(this.personalTools[i]);
           }
         }
       }
       this.personalTools = tools;
       this.personalToolsets = toolsets;
-      if(toolsetsShow.length > 0){
-        this.stepToolsetsShow.push(toolsetsShow);
+      if (toolsetsShow.length > 0) {
+        this.stepToolsetsShow = this.stepToolsetsShow.concat(toolsetsShow);
       }
-      if(toolsShow.length > 0){
-        this.stepToolsShow.push(toolsShow);
+      if (toolsShow.length > 0) {
+        this.stepToolsShow = this.stepToolsShow.concat(toolsShow);
       }
-      
+      this.stepToolsetsShow = this.unique(this.stepToolsetsShow);
+      this.stepToolsShow = this.unique(this.stepToolsShow);
+    },
+    unique(arr) {
+      return Array.from(new Set(arr));
     },
     filterShowListByType() {
       this.publicToolsetsShow = this.getFilterResult(this.publicToolsets);
@@ -792,7 +780,6 @@ export default {
     },
     removeToolset(index) {
       var removeToolsetInfo = this.stepToolsetsShow[index];
-      consoles.log(removeToolsetInfo);
       this.stepToolsetsShow.splice(index, 1);
       if (removeToolsetInfo.privacy == "Public") {
         this.publicToolsets.push(removeToolsetInfo);
@@ -840,12 +827,15 @@ export default {
         newStepTools.push(tool.tid);
       });
 
+      this.operationApi.getActivityDoc(this.activityInfo.aid);
       // 更新协同文档
       // add 只能添加工具集和工具，不能单独添加工具集中的工具
       for (var i = 0; i < this.stepToolsetsShow.length; i++) {
         if (this.isToolIdList(this.stepToolsetsShow[i].tid) == false) {
+          this.toolIdList.push(this.stepToolsetsShow[i].tid);
 
-          this.operationApi.toolOperationRecord(
+          // 操作记录
+          let operationId = this.operationApi.toolOperationRecord(
             this.activityInfo.aid,
             "",
             "",
@@ -853,12 +843,26 @@ export default {
             this.userInfo.userId,
             this.stepToolsetsShow[i]
           );
+          // 生成临时操作记录
+          let toolOperation = {
+            id: operationId,
+            type: "tool",
+            toolRef: this.stepToolsetsShow[i].tid,
+            operator: this.userInfo.userId,
+          };
+          // 将 operation 添加到 workspace 中
+          this.$store.commit("updateTempOperations", {
+            behavior: "add",
+            operation: toolOperation,
+          });
         }
       }
       for (let i = 0; i < this.stepToolsShow.length; i++) {
         if (this.isToolIdList(this.stepToolsShow[i].tid) == false) {
+          this.toolIdList.push(this.stepToolsShow[i].tid);
 
-          this.operationApi.toolOperationRecord(
+          // 操作记录
+          let operationId = this.operationApi.toolOperationRecord(
             this.activityInfo.aid,
             "",
             "",
@@ -866,16 +870,27 @@ export default {
             this.userInfo.userId,
             this.stepToolsShow[i]
           );
+          // 生成临时操作记录
+          let toolOperation = {
+            id: operationId,
+            type: "tool",
+            toolRef: this.stepToolsShow[i].tid,
+            operator: this.userInfo.userId,
+          };
+          this.$store.commit("updateTempOperations", {
+            behavior: "add",
+            operation: toolOperation,
+          });
         }
       }
       // remove
-      console.log(this.toolIdList);
-      console.log(this.stepToolsetsShow);
-      console.log(this.stepToolsShow);
-      for (var i = 0; i < this.toolIdList.length; i++) {
-        if (this.isStepToolsetsShow(this.toolIdList[i]) == false && this.isStepToolsShow(this.toolIdList[i]) == false) {
-
-          this.operationApi.toolOperationRecord(
+      for (var i = this.toolIdList.length - 1; i >= 0; i--) {
+        if (
+          this.isStepToolsetsShow(this.toolIdList[i]) == false &&
+          this.isStepToolsShow(this.toolIdList[i]) == false
+        ) {
+          // 操作记录
+          let operationId = this.operationApi.toolOperationRecord(
             this.activityInfo.aid,
             "",
             "",
@@ -883,12 +898,56 @@ export default {
             this.userInfo.userId,
             { tid: this.toolIdList[i] }
           );
+          // 生成临时操作记录
+          let toolOperation = {
+            id: operationId,
+            type: "tool",
+            toolRef: this.toolIdList[i],
+            operator: this.userInfo.userId,
+          };
+          this.$store.commit("updateTempOperations", {
+            behavior: "add",
+            operation: toolOperation,
+          });
+          this.toolIdList.splice(i, 1);
         }
       }
-
+      this.updateToolist();
       //此处要更新父组件的列表
       this.$emit("updateStepTools", newStepTools, newStepToolsets);
       this.stepToolModal = false;
+    },
+    updateToolist() {
+      let updateurl = "";
+      if (this.activityInfo.level == 0) {
+        updateurl = "/GeoProblemSolving/project/" + this.activityInfo.aid;
+      } else if (this.activityInfo.level == 1) {
+        updateurl = "/GeoProblemSolving/subproject/" + this.activityInfo.aid;
+      } else if (this.activityInfo.level > 1) {
+        updateurl = "/GeoProblemSolving/activity/" + this.activityInfo.aid;
+      } else {
+        return;
+      }
+      let data = {
+        aid: this.activityInfo.aid,
+        toolList: this.toolIdList,
+      };
+
+      this.axios
+        .put(updateurl, data)
+        .then((res) => {
+          if (res.data == "Offline") {
+            this.$store.commit("userLogout");
+            this.tempLoginModal = true;
+          } else if (res.data.code == 0) {
+          } else {
+            this.$Message.error("Fail to update tool list.");
+            console.log(res.data.msg);
+          }
+        })
+        .catch((err) => {
+          throw err;
+        });
     },
     changeMenuItem(name) {
       if (name == "diyTools") {

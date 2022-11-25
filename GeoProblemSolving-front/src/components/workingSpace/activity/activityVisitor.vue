@@ -121,7 +121,7 @@
                   <span>{{ member.name }}</span>
                 </div>
                 <div class="memberRole">
-                  <span>{{ member.role }}</span>
+                  <span>{{ member.role.charAt(0).toUpperCase() + member.role.slice(1) }}</span>
                 </div>
               </div>
             </div>

@@ -1,6 +1,7 @@
 package cn.edu.njnu.geoproblemsolving.business.activity.processDriven.service;
 
 import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 
 import java.util.HashSet;
 
@@ -11,9 +12,11 @@ public interface UserDispatch {
 
     Object updateActivityMember(String aid, JSONArray members);
 
-    Object getNodeUserTag(HashSet<String> nodeIds);
+    Object getNodeUserTag(Integer level, HashSet<String> nodeIds);
 
-    Object getUserTag(String userId);
+    JSONObject getUserTag(String userId);
+
+    JSONObject getUsersTag(HashSet<String> userIds);
 
     boolean checkUserIsApproved(String graphId, String nodeId, String userId);
 

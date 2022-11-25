@@ -12,6 +12,7 @@ var roadDataId, buildingDataId, barrierDataId, runningId;
 var roadData, buildingData, barrierData;
 var resultIdList = [];
 var userId;
+var resProxy = "https://geomodeling.njnu.edu.cn/dataTransferServer";
 
 proj4.defs("EPSG:2437", "+proj=tmerc +lat_0=0 +lon_0=120 +k=1 +x_0=500000 +y_0=0 +ellps=krass +towgs84=15.8,-154.4,-82.3,0,0,0,0 +units=m +no_defs");
 
@@ -165,6 +166,10 @@ function getSocketOperation(data) {
                         break;
                 }
                 break;
+            }
+            case "data-visualization": {
+                loadResultTiff(content.data);
+                break
             }
             case "road-edit-start": {
                 var prop = content.propInfo;
@@ -342,7 +347,7 @@ function getSocketOperation(data) {
                 break;
             }
             case "value-change": {
-                if(content.type === "text") {
+                if (content.type === "text") {
                     $("#" + content.id).val(content.value);
                     $("#" + content.id).css("border-color", "lightgreen");
                 } else if (content.type === "checkbox") {
@@ -478,12 +483,109 @@ function selectData(dataType) {
     });
 }
 
+function exportData(dataType) {
+    let data = {};
+    if (dataType === "Road") {
+        if (roadData == undefined) {
+            alert("There is no road data can be exported.");
+            return;
+        } else {
+            data = {
+                aid: window.parent.activityInfo.aid,
+                uid: roadData.uid,
+                input: roadData,
+                name: roadData.name,
+                user: userId,
+                graphId: window.parent.activityInfo.parent,
+            }
+        }
+    } else if (dataType === "Building") {
+        if (buildingData == undefined) {
+            alert("There is no building data can be exported.");
+            return;
+        } else {
+            data = {
+                aid: window.parent.activityInfo.aid,
+                uid: buildingData.uid,
+                name: buildingData.name,
+                input: buildingData,
+                user: userId,
+                graphId: window.parent.activityInfo.parent,
+            }
+        }
+    } else if (dataType === "Barrier") {
+        if (barrierData == undefined) {
+            alert("There is no barrier data can be exported.");
+            return;
+        } else {
+            data = {
+                aid: window.parent.activityInfo.aid,
+                uid: barrierData.uid,
+                name: barrierData.name,
+                input: barrierData,
+                user: userId,
+                graphId: window.parent.activityInfo.parent,
+            }
+        }
+    } else if (dataType === "Region") {
+        if (selectROI.ROI == undefined) {
+            alert("There is no simulation area selected.");
+            return;
+        } else {
+            var northWestPoint = selectROI.ROI.getBounds().getNorthWest();
+            var southEastPoint = selectROI.ROI.getBounds().getSouthEast();
+            var upperLeftPoint = proj4("EPSG:4326", "EPSG:2437", [northWestPoint.lng, northWestPoint.lat]);
+            var lowerRightPoint = proj4("EPSG:4326", "EPSG:2437", [southEastPoint.lng, southEastPoint.lat]);
+
+            data = {
+                aid: window.parent.activityInfo.aid,
+                top: upperLeftPoint[1],
+                right: lowerRightPoint[0],
+                bottom: lowerRightPoint[1],
+                left: upperLeftPoint[0],
+                user: userId,
+                graphId: window.parent.activityInfo.parent,
+            }
+        }
+    }
+    data["toolId"] = window.parent.toolId;
+    data["participant"] = window.parent.onlineMembers;
+
+    $.ajax({
+        type: "post",
+        url: "/GeoProblemSolving/export" + dataType + "Servlet",
+        data: JSON.stringify(data),
+        processData: false,
+        contentType: 'application/json',
+        success: function (resp) {
+            var result = JSON.parse(resp);
+            if (result.respCode === 1) {
+                window.parent.loadingBackendOperation(result.operationId);
+                alert("Export data successfully!");
+                //
+            } else {
+                alert("Fail to export data!");
+            }
+        }
+    });
+}
+
 function importData() {
     if (selectedData == {} || selectedDataType == "") return;
 
     if (selectedDataType === "Result") {
         $("#loadDataModal").modal("hide");
         loadResultTiff(selectedData.address);
+
+        // collaboration
+        window.parent.sendCustomOperation({
+            type: "operation",
+            sender: userId,
+            behavior: "data-visualization",
+            content: {
+                data: selectedData.address,
+            },
+        });
     } else {
         if (selectedDataType === "Road") {
             roadData = selectedData;
@@ -1074,7 +1176,7 @@ function onRunModel() {
                     content: "run-start",
                 });
 
-                window.parent.sendModelOperation(window.parent.activityInfo.aid, "33eabfc9fa8fad6c35c862c48c0c3349", "172.21.213.105", "8061", inputs, outputs);
+                window.parent.sendModelOperation(window.parent.activityInfo.aid, "da09d518ee0b8f7c50c2d4b695b98553", "172.21.213.105", "8061", inputs, outputs);
 
             } else {
                 $("#waitting").hide();
@@ -1217,7 +1319,7 @@ function onHasReflectChanged(id) {
     }
 
     // send message
-    window.parent.sendElementChangeOperation(id, "value-change", "checkbox", "", "",  isChecked);
+    window.parent.sendElementChangeOperation(id, "value-change", "checkbox", "", "", isChecked);
 }
 
 
@@ -1981,8 +2083,13 @@ async function loadShapefile(layer, shapefilePath) {
 }
 
 function loadResultTiff(resulUrl) {
+    let uid;
+    if (typeof(resulUrl) == "string"){
+        uid = resulUrl.slice(-36);
+    }
+    let resUrl = resProxy + "/data/" + uid;
     L.leafletGeotiff(
-        url = resulUrl,
+        url = resUrl,
         options = {
             band: 0,
             displayMin: 0,

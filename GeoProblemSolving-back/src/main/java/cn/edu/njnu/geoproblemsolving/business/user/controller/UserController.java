@@ -159,11 +159,11 @@ public class UserController {
      * @throws IOException
      */
     @RequestMapping(value = "/logout", method = RequestMethod.GET)
-    public void logout(HttpServletRequest request) throws IOException {
+    public void logout(HttpServletRequest request) {
         HttpSession session = request.getSession();
         System.out.println("User logout. UserName: " + session.getAttribute("name"));
         String userId = (String)session.getAttribute("userId");
-        //清楚 Token
+        //清除 Token
         userService.logout(userId);
         session.invalidate();
     }

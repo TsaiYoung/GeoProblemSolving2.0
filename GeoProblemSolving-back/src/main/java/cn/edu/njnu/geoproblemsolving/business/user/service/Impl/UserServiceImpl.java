@@ -1,5 +1,6 @@
 package cn.edu.njnu.geoproblemsolving.business.user.service.Impl;
 
+import cn.edu.njnu.geoproblemsolving.business.activity.processDriven.service.NodeService;
 import cn.edu.njnu.geoproblemsolving.business.resource.util.RestTemplateUtil;
 import cn.edu.njnu.geoproblemsolving.business.user.dao.Impl.UserDaoImpl;
 import cn.edu.njnu.geoproblemsolving.business.user.entity.TokenInfo;
@@ -65,6 +66,9 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     TokenTask tokenTask;
+
+    @Autowired
+    NodeService nodeService;
 
     /**
      * 用户注册服务
@@ -318,8 +322,21 @@ public class UserServiceImpl implements UserService {
             //用户服务器更新成功，更新本地用户
             UserEntity serverUser = updateResultJson.getObject("data", UserEntity.class);
             String[] nullPropertyNames = getNullPropertyNames(serverUser);
+
+            //update node
+            ArrayList<String> localOrg = JSONObject.parseObject(JSONObject.toJSONString(localUser.getOrganizations()), ArrayList.class);
+            ArrayList<String> localDomain = JSONObject.parseObject(JSONObject.toJSONString(localUser.getDomain()), ArrayList.class);
+
             BeanUtils.copyProperties(serverUser, localUser, nullPropertyNames);
             userDao.saveUser(localUser);
+
+
+            //update node
+            ArrayList<String> serverOrg = serverUser.getOrganizations();
+            ArrayList<String> serverDomain = serverUser.getDomain();
+
+            nodeService.putUserInfoToNode(userId, localOrg, serverOrg, localDomain, serverDomain);
+
             return ResultUtils.success(serverUser.getAvatar());
         } catch (Exception e) {
             return ResultUtils.error(-2, "Failed to update user information.");

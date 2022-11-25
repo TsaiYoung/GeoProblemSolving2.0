@@ -1,9 +1,9 @@
 <UDXZip>
 	<Name count="4">
-		<add value="Barrier.shp" />
-		<add value="Barrier.dbf" />
-		<add value="Barrier.prj" />
-		<add value="Barrier.shx" />
+		<add value="$(fileName).shp" />
+		<add value="$(fileName).dbf" />
+		<add value="$(fileName).prj" />
+		<add value="$(fileName).shx" />
 	</Name>
 	<Format>shapefile</Format>
 </UDXZip>

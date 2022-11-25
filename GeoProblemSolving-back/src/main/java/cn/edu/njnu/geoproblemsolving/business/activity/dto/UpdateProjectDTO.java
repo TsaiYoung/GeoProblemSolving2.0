@@ -8,6 +8,7 @@ import cn.edu.njnu.geoproblemsolving.business.activity.enums.ProjectPrivacy;
 import com.alibaba.fastjson.JSONArray;
 import lombok.Data;
 
+import java.util.HashSet;
 import java.util.List;
 
 @Data
@@ -22,6 +23,7 @@ public class UpdateProjectDTO implements ToDomainConverter<Project> {
     private ActivityType type;
     private JSONArray pathway;
     private String permission;
+    private HashSet<String> toolList;
 
 
     /**
@@ -32,8 +34,4 @@ public class UpdateProjectDTO implements ToDomainConverter<Project> {
     private String picture;
     private ProjectCategory category;
 
-    /**
-     * MIMI
-     */
-    List<String> toolList;
 }

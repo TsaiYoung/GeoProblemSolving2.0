@@ -18,6 +18,8 @@ function guid() {
     return (S4() + S4() + "-" + S4() + "-4" + S4().substr(0, 3) + "-" + S4() + "-" + S4() + S4() + S4()).toLowerCase();
 }
 
+let resProxy = "https://geomodeling.njnu.edu.cn/dataTransferServer";
+
 // basic information
 var toolId = "";
 var activityInfo = null;
@@ -34,7 +36,7 @@ var taskList = [];
     var panelType = "people";
 
     function initComponent() {
-        $("#collab-tool-head").append(`<li class="head-logo"></li>`);
+        $("#collab-tool-head").append(`<li><span class="head-logo" id="tool-logo" style="cursor: pointer; width: 120px; display: inline-block;"></span></li>`);
         $("#collab-tool-sidebar").append(
             `<ul class="nav flex-column" style="width: 46px">
             <li class="nav-item">
@@ -122,7 +124,7 @@ var taskList = [];
                         <button class="btn btn-success btn-sm apply" style="background-color: green;" id="operation-apply">Apply</button>
                         <button class="btn btn-info btn-sm stop" style="display: none;" id="operation-stop">Stop</button>
                     </div>
-                    <div class="operator" id="operator">
+                    <div class="operator" id="apply-operator">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-joystick" viewBox="0 0 16 16" style="margin-top: -3px; margin-right:5px">
                             <path d="M10 2a2 2 0 0 1-1.5 1.937v5.087c.863.083 1.5.377 1.5.726 0 .414-.895.75-2 .75s-2-.336-2-.75c0-.35.637-.643 1.5-.726V3.937A2 2 0 1 1 10 2z"/>
                             <path d="M0 9.665v1.717a1 1 0 0 0 .553.894l6.553 3.277a2 2 0 0 0 1.788 0l6.553-3.277a1 1 0 0 0 .553-.894V9.665c0-.1-.06-.19-.152-.23L9.5 6.715v.993l5.227 2.178a.125.125 0 0 1 .001.23l-5.94 2.546a2 2 0 0 1-1.576 0l-5.94-2.546a.125.125 0 0 1 .001-.23L6.5 7.708l-.013-.988L.152 9.435a.25.25 0 0 0-.152.23z"/>
@@ -131,7 +133,7 @@ var taskList = [];
                     <div class="operation-waiting" id="operation-waiting"></div>
                 </div>
                 <div class="operation-control-occupy" style="display: none;">
-                    <div class="operator" id="operator">
+                    <div class="operator" id="occupy-operator">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-joystick" viewBox="0 0 16 16" style="margin-top: -3px; margin-right:5px">
                             <path d="M10 2a2 2 0 0 1-1.5 1.937v5.087c.863.083 1.5.377 1.5.726 0 .414-.895.75-2 .75s-2-.336-2-.75c0-.35.637-.643 1.5-.726V3.937A2 2 0 1 1 10 2z"/>
                             <path d="M0 9.665v1.717a1 1 0 0 0 .553.894l6.553 3.277a2 2 0 0 0 1.788 0l6.553-3.277a1 1 0 0 0 .553-.894V9.665c0-.1-.06-.19-.152-.23L9.5 6.715v.993l5.227 2.178a.125.125 0 0 1 .001.23l-5.94 2.546a2 2 0 0 1-1.576 0l-5.94-2.546a.125.125 0 0 1 .001-.23L6.5 7.708l-.013-.988L.152 9.435a.25.25 0 0 0-.152.23z"/>
@@ -181,12 +183,14 @@ var taskList = [];
 
             activityInfo = event.data.activity;
             userInfo = event.data.user;
+            onlineMembers = [userInfo];
             toolId = event.data.tid;
             taskList = event.data.tasks;
 
             componentStatus = true;
 
             getParticipants();
+            getParentActivities();
             getResources();
 
             // socket
@@ -198,6 +202,10 @@ var taskList = [];
         // message
         // The event occurs when a message is received through the event source
         window.addEventListener("message", getActivityInfo, false);
+
+        $("#tool-logo").on("click", function () {
+            location.reload();
+        });
 
         $("#people-btn").on("click", function () {
 
@@ -324,7 +332,7 @@ var taskList = [];
 
     // post message to parent page
     function postIframeMsg(data) {
-        window.parent.postMessage(data, '*')
+        window.parent.postMessage(data, '*');
     }
 }
 
@@ -333,9 +341,12 @@ var taskList = [];
 //////////
 {
     // user related
-    var participants = null;
-    var onlineMembers = null;
-    let UserServer = "http://172.21.212.103:8088/userServer";
+    var participants = [];
+    var onlineMembers = [];
+    let UserServer = "/userServer";
+    if (window.location.hostname == "localhost") {
+        UserServer = "http://172.21.213.245:8088/userServer";
+    }
 
     // data
     function getParticipants() {
@@ -372,12 +383,12 @@ var taskList = [];
         for (let i = 0; i < participants.length; i++) {
             let avatar = ""
             if (participants[i].avatar == undefined || participants[i].avatar == "") {
-                avatar = "/static/collabTemplate/img/icon_avatar.png";
+                avatar = "./static/collabTemplate/img/icon_avatar.png";
             } else {
                 avatar = UserServer + participants[i].avatar;
             }
             let peopleElement = `<div class="card participants" id="${participants[i].userId}">
-                                <img src="${avatar}" class="participant-avatar" />
+                                <img src="${avatar}" class="participant-avatar" onerror="src='./static/collabTemplate/img/icon_avatar.png'"/>
                                 <div class="participant-info">
                                     <div class="participant-info-name">${participants[i].name}</div>
                                     <div class="participant-info-role">${participants[i].role}</div>
@@ -394,10 +405,16 @@ var taskList = [];
         for (let i = 0; i < members.length; i++) {
             $(`#${members[i].userId}`).css("background-color", "white");
         }
+        onlineMembers = members;
     }
 
     function personOffline(member) {
         $(`#${member.userId}`).css("background-color", "lightgrey");
+        for (let i = 0; i < onlineMembers.length; i++) {
+            if (onlineMembers[i].userId === member.userId) {
+                onlineMembers.splice(i, 1);
+            }
+        }
     }
 }
 
@@ -411,6 +428,7 @@ var taskList = [];
     var resources = [];
     var selectedResources = [];
     var loadResChannel = null;
+    var parentResources = [];
 
     //data
     function getResources() {
@@ -428,10 +446,11 @@ var taskList = [];
             async: false,
             success: function (result) {
                 if (result == "Offline") {
-                    confirm("You are offline, please login.")
+                    confirm("You are offline, please login.");
                 } else if (result.code == 0) {
                     let rootRes = result.data;
                     resources = resToCurrentFolder(rootRes);
+                    importParentRes();
                     showResList();
 
                 }
@@ -440,6 +459,67 @@ var taskList = [];
                 throw err;
             }
         });
+    }
+
+    function getParentActivities() {
+        let parents = [];
+        if (activityInfo.level > 0 && activityInfo.aid != "" && activityInfo.aid != undefined) {
+            let url = "";
+            if (activityInfo.level == 1) {
+                url = "/GeoProblemSolving/subproject/" + activityInfo.aid + "/lineage";
+            } else if (activityInfo.level > 1) {
+                url = "/GeoProblemSolving/activity/" + activityInfo.aid + "/lineage";
+            }
+
+            $.ajax({
+                url: url,
+                type: "GET",
+                async: false,
+                success: function (result) {
+                    if (result == "Offline") {
+                        confirm("You are offline, please login.");
+                    } else if (result.code == 0) {
+                        let list = result.data.ancestors;
+                        for (let i = 1; i < list.length; i++) {
+                            parents.push(list[i].aid);
+                        }
+                        getParentActivitiesFile(parents);
+                    } else {
+                        console.log(result.msg);
+                    }
+                },
+                error: function (err) {
+                    throw err;
+                }
+            });
+
+        }
+    }
+
+    function getParentActivitiesFile(parents) {
+        if (parents != undefined && parents.length > 0) {
+            $.ajax({
+                url: "/GeoProblemSolving/rip/file/" + parents.toString(),
+                type: "GET",
+                async: false,
+                success: function (result) {
+                    if (result == "Offline") {
+                        confirm("You are offline, please login.");
+                    } else if (result.code == 0) {
+                        let fileList = result.data;
+                        parentResources = [];
+                        for (let i = 0; i < parents.length; i++) {
+                            parentResources.push(fileList[parents[i]]);
+                        }
+                    } else {
+                        console.log(result.msg);
+                    }
+                },
+                error: function (err) {
+                    throw err;
+                }
+            });
+        }
     }
 
     // page
@@ -458,7 +538,7 @@ var taskList = [];
     function addfolder(folder) {
         let resElement = `<div class="card resource" title="${folder.name}">
                             <input class="form-check-input" type="checkbox" id="${folder.uid}">
-                            <img src="/static/collabTemplate/img/folder.png" class="folder-${folder.uid} res-icon"/>
+                            <img src="./static/collabTemplate/img/folder.png" class="folder-${folder.uid} res-icon"/>
                             <div class="folder-${folder.uid} res-name">${folder.name}</div>
                         </div>`
         $("#resource-list").append(resElement);
@@ -491,7 +571,7 @@ var taskList = [];
             case "data": {
                 resElement = `<div class="card resource" title="${fileName}">
                             <input class="form-check-input" type="checkbox" id="${file.uid}" >
-                            <img src="/static/collabTemplate/img/data.png" class="res-icon" />
+                            <img src="./static/collabTemplate/img/data.png" class="res-icon" />
                             <div class="res-name">${fileName}</div>
                         </div>`
                 break;
@@ -499,7 +579,7 @@ var taskList = [];
             case "model": {
                 resElement = `<div class="card resource" title="${fileName}">
                             <input class="form-check-input" type="checkbox" id="${file.uid}" >
-                            <img src="/static/collabTemplate/img/model.png" class="res-icon" />
+                            <img src="./static/collabTemplate/img/model.png" class="res-icon" />
                             <div class="res-name">${fileName}</div>
                         </div>`
                 break;
@@ -507,7 +587,7 @@ var taskList = [];
             case "paper": {
                 resElement = `<div class="card resource" title="${fileName}">
                             <input class="form-check-input" type="checkbox" id="${file.uid}" >
-                            <img src="/static/collabTemplate/img/paper.png" class="res-icon" />
+                            <img src="./static/collabTemplate/img/paper.png" class="res-icon" />
                             <div class="res-name">${fileName}</div>
                         </div>`
                 break;
@@ -515,7 +595,7 @@ var taskList = [];
             case "document": {
                 resElement = `<div class="card resource" title="${fileName}">
                             <input class="form-check-input" type="checkbox" id="${file.uid}">
-                            <img src="/static/collabTemplate/img/document.png" class="res-icon" />
+                            <img src="./static/collabTemplate/img/document.png" class="res-icon" />
                             <div class="res-name">${fileName}</div>
                         </div>`
                 break;
@@ -523,7 +603,7 @@ var taskList = [];
             case "image": {
                 resElement = `<div class="card resource" title="${fileName}">
                             <input class="form-check-input" type="checkbox" id="${file.uid}" >
-                            <img src="/static/collabTemplate/img/image.png" class="res-icon" />
+                            <img src="./static/collabTemplate/img/image.png" class="res-icon" />
                             <div class="res-name">${fileName}</div>
                         </div>`
                 break;
@@ -531,7 +611,7 @@ var taskList = [];
             case "video": {
                 resElement = `<div class="card resource" title="${fileName}">
                             <input class="form-check-input" type="checkbox" id="${file.uid}">
-                            <img src="/static/collabTemplate/img/video.png" class="res-icon" />
+                            <img src="./static/collabTemplate/img/video.png" class="res-icon" />
                             <div class="res-name">${fileName}</div>
                         </div>`
                 break;
@@ -539,7 +619,7 @@ var taskList = [];
             case "others": {
                 resElement = `<div class="card resource" title="${fileName}">
                     <input class="form-check-input" type="checkbox" id="${file.uid}">
-                        <img src="/static/collabTemplate/img/otherfile.png" class="res-icon" />
+                        <img src="./static/collabTemplate/img/otherfile.png" class="res-icon" />
                         <div class="res-name">${fileName}</div>
                         </>`
                 break;
@@ -609,16 +689,27 @@ var taskList = [];
             folders: [],
             files: []
         }
+
         for (let i = 0; i < rootRes.length; i++) {
             if (rootRes[i].folder) {
                 currentFolder.folders.push(rootRes[i]);
             } else {
+                let address = rootRes[i].address;
+                if (typeof (address) == "string") {
+                    address = address.slice(-36);
+                }
+                rootRes[i].address = resProxy + "/data/" + address;
                 currentFolder.files.push(rootRes[i]);
             }
         }
         return currentFolder;
     }
 
+    function importParentRes() {
+        for (let i = 0; i < parentResources.length; i++) {
+            resources.files.push.apply(resources.files, parentResources[i]);
+        }
+    }
 
     // resource related operations
     function selectFile(file) {
@@ -723,7 +814,7 @@ var taskList = [];
                     }
                 ],
                 params: [],
-                participants: participants
+                participants: onlineMembers
             }
 
             // collaboration message
@@ -853,16 +944,19 @@ var taskList = [];
     function setCollaborationMode(mode) {
         if (mode != undefined && mode !== "") {
             if (mode === "Free") {
+                $("#collaboration-mode").val("Free");
                 $(".operation-control-apply").hide();
                 $(".operation-control-occupy").hide();
                 $(".operation-list").css("height", "calc(100vh - 200px)");
                 collabMode = "Free";
             } else if (mode === "SemiFree_Apply") {
+                $("#collaboration-mode").val("SemiFree_Apply");
                 $(".operation-control-apply").show();
                 $(".operation-control-occupy").hide();
                 $(".operation-list").css("height", "calc(100vh - 305px)");
                 collabMode = "SemiFree_Apply";
             } else if (mode === "SemiFree_Occupy") {
+                $("#collaboration-mode").val("SemiFree_Occupy");
                 $(".operation-control-apply").hide();
                 $(".operation-control-occupy").show();
                 $(".operation-list").css("height", "calc(100vh - 250px)");
@@ -872,15 +966,47 @@ var taskList = [];
     }
 
     function setOperator(operator) {
-        if (collabMode !== "Free" && operator != userInfo.userId) {
-            $("#edit-mask").show();
-        } else {
+        if (collabMode == "Free") {
             $("#edit-mask").hide();
-        }
+        } else if (collabMode == "SemiFree_Occupy") {
+            $("#edit-mask").hide();
 
-        if (operator != undefined) {
-            $("#operator-name").remove();
-            $("#operator").append(`<span class="operator-name" id="operator-name">${operator.name}</span>`);
+            if (operator != undefined && operator != {} && operator != "") {
+                $("#occupy-operator-name").remove();
+                $("#occupy-operator").append(`<span class="operator-name" id="occupy-operator-name" title="${operator.name}">${operator.name}</span>`);
+            }
+        } else if (collabMode == "SemiFree_Apply") {
+            let user = null;
+            if (Object.prototype.toString.call(operator) == "[object Object]") {
+                user = Object.assign({}, operator);
+                operator = operator.userId
+            } else {
+                for (let i = 0; i < participants.length; i++) {
+                    if (participants[i].userId == operator) {
+                        user = participants[i];
+                    }
+                }
+            }
+
+            if (operator != userInfo.userId) {
+                $("#operation-apply").show();
+                $("#operation-stop").hide();
+                $("#edit-mask").show();
+            } else {
+                $("#operation-apply").hide();
+                $("#operation-stop").show();
+                $("#edit-mask").hide();
+            }
+
+            if (operator != undefined && operator != "") {
+                if (user != null) {
+                    $("#apply-operator-name").remove();
+                    $("#apply-operator").append(`<span class="operator-name" id="apply-operator-name" title="${user.name}">${user.name}</span>`);
+                }
+            } else if (operator == "") {
+                $("#apply-operator-name").remove();
+                $("#apply-operator").append(`<span class="operator-name" id="apply-operator-name" title="no operator">${operator}</span>`);
+            }
         }
     }
 
@@ -891,13 +1017,19 @@ var taskList = [];
                 $("#operation-waiting").append(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-lines-fill" viewBox="0 0 16 16" style="margin-top: -3px;">
                                                 <path d="M6 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-5 6s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H1zM11 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5zm.5 2.5a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1h-4zm2 3a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1h-2zm0 3a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1h-2z"/>
                                             </svg>
-                                            <span style="margin-left: 5px; color: #007bff;" title="Waiting for operation">${count} people are waiting</span>`);
+                                            <span style="margin-left: 5px; color: #007bff;" title="Waiting for operation">Waiting for ${count} people</span>`);
             } else if (count == 0) {
                 $("#operation-waiting").empty();
                 $("#operation-waiting").append(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-lines-fill" viewBox="0 0 16 16" style="margin-top: -3px;">
                                                 <path d="M6 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-5 6s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H1zM11 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5zm.5 2.5a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1h-4zm2 3a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1h-2zm0 3a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1h-2z"/>
                                             </svg>
                                             <span style="margin-left: 5px; color: #007bff;" title="Waiting for operation">Apply to operate</span>`);
+            } else if (count < 0) {
+                $("#operation-waiting").empty();
+                $("#operation-waiting").append(`<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person-lines-fill" viewBox="0 0 16 16" style="margin-top: -3px;">
+                                                <path d="M6 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-5 6s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1H1zM11 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5zm.5 2.5a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1h-4zm2 3a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1h-2zm0 3a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1h-2z"/>
+                                            </svg>
+                                            <span style="margin-left: 5px; color: #007bff;" title="Waiting for operation">Current operator</span>`);
             }
         }
     }
@@ -989,8 +1121,17 @@ var taskList = [];
                     "operations": [operation],
                     "task": ""
                 });
+            } else if (from === "transfer") {
             }
         }
+    }
+
+    function refreshOperation(oid) {
+        let message = {
+            type: "task-record-backend",
+            oid: oid
+        };
+        postIframeMsg(message)
     }
 
     // Synchronize
@@ -1073,9 +1214,9 @@ var taskList = [];
         timer: null,
         websockLinked: false,
 
-        initSocketChannel: function (opeChannel, dataChannel, compChannel, peopleChannel) {
+        initSocketChannel: function (opeChannel, resChannel, compChannel, peopleChannel) {
             operationChannel = opeChannel;
-            dataChannel = dataChannel;
+            dataChannel = resChannel;
             computationChannel = compChannel;
             participantChannel = peopleChannel;
         },
@@ -1108,20 +1249,24 @@ var taskList = [];
                 console.log("Connection closed (" + e.code + ")");
                 this.removeTimer();
                 this.websockLinked = false;
+
+                if (e.code == 1006) {
+                    this.initWebSocket(aid, toolId);
+                }
             }
 
             //连接发生错误的回调方法
             this.websock.onerror = () => {
                 console.log("WebSocket error!");
-                this.removeTimer();
-                this.websockLinked = false;
+                // this.removeTimer();
+                // this.websockLinked = false;
             }
 
         },
 
         setTimer: function () {
             this.timer = setInterval(() => {
-                var messageJson = { type: "ping" };
+                var messageJson = {type: "ping"};
                 this.websocketSend(messageJson);
             }, 20000);
         },
@@ -1139,7 +1284,7 @@ var taskList = [];
                         if (data.behavior == "on") {
                             personOnline(data.participants);
                         } else if (data.behavior == "off") {
-                            personOffline(activeUser);
+                            personOffline(data.activeUser);
                         }
 
                         if (participantChannel != undefined && typeof participantChannel == "function") {
@@ -1148,21 +1293,21 @@ var taskList = [];
                         break;
                     }
                     case "collaboration-init": {
-                        setCollaborationMode(data.mode);
+                        setCollaborationMode(data.content);
                         setOperator(data.operator);
                         setWaitingLine(data.waiting);
                         break;
                     }
                     case "mode": {
                         if (data.operator !== userInfo.userId) {
-                            setCollaborationMode(data.mode);
+                            setCollaborationMode(data.content);
                         }
                         setOperator("");
                         setWaitingLine(0);
                         break;
                     }
                     case "control-apply": {
-                        if (data.operator !== userInfo.userId) {
+                        if (data.operator == userInfo.userId) {
                             $("#operation-apply").hide();
                             $("#operation-stop").show();
                         }
@@ -1171,15 +1316,16 @@ var taskList = [];
                         break;
                     }
                     case "control-stop": {
-                        if (data.sender.userId !== userInfo.userId) {
-                            $("#operation-apply").show();
-                            $("#operation-stop").hide();
-                        }
                         setOperator(data.operator);
                         setWaitingLine(data.waiting);
                         break;
                     }
                     case "operation": {
+                        setOperator(data.sender);
+                        if (data.behavior != undefined && data.behavior == "Refuse") {
+                            alert("Please wait for a while.")
+                            break;
+                        }
                         if (operationChannel != undefined && typeof operationChannel == "function") {
                             if (data.sender.userId !== userInfo.userId) {
                                 operationChannel(data);
@@ -1195,22 +1341,37 @@ var taskList = [];
                                 }
                                 dataChannel(data);
                                 // record
-                                addOperations(message.sender, message, "transfer");
+                                // addOperations(message.sender, message, "transfer");
                             }
                         }
                         break;
                     }
                     case "geo-analysis": {
-                        addOperations(message.sender, message, "transfer");
+                        // addOperations(message.sender, message, "transfer");
                     }
                     case "computation": {
                         if (computationChannel != undefined && typeof computationChannel == "function") {
                             computationChannel(data);
+                            if (data.computeSuc) {
+                                let computationResult = {
+                                    type: "task-record-backend",
+                                    oid: data.operationId
+                                }
+                                postIframeMsg(computationResult);
+                            }
                         }
                         break;
                     }
                     case "test": {
-
+                        try {
+                            content = JSON.parse(data.content);
+                            setCollaborationMode(content.mode);
+                            setOperator(content.operator);
+                            setWaitingLine(content.waiting);
+                        } catch (err) {
+                            console.log(err);
+                        }
+                        break;
                     }
                 }
             } catch (err) {
@@ -1280,7 +1441,8 @@ var taskList = [];
                 type: "computation",
                 inputs: inputs,
                 outputs: outputs,
-                sender: userInfo.userId
+                sender: userInfo.userId,
+                graphId: activityInfo.parent
             };
             if (this.websock.readyState === this.websock.OPEN) {
                 this.websocketSend(invokeForm);
@@ -1296,26 +1458,28 @@ var taskList = [];
             }
         },
 
-        receiveDataComputation: function (aid, serviceId, serviceToken, inputs, params) {
+        receiveDataComputation: function (aid, serviceId, serviceToken, inputData, inputs, params) {
             // computationChannel = callback;
             let invokeMsg = {
                 type: "computation",
                 tid: serviceId,
                 token: serviceToken,
                 urls: inputs,
+                inputs: inputData,
                 params: params,
                 computeAbleModel: false,
-                sender: userInfo.userId
+                sender: userInfo.userId,
+                graphId: activityInfo.parent
             };
             if (this.websock.readyState === this.websock.OPEN) {
                 this.websocketSend(invokeMsg);
             } else if (this.websock.readyState === this.websock.CONNECTING) {
                 setTimeout(function () {
-                    this.receiveDataComputation(aid, serviceId, serviceToken, inputs, params);
+                    this.receiveDataComputation(aid, serviceId, serviceToken, inputData, inputs, params);
                 }, 1000)
             } else {
                 setTimeout(function () {
-                    this.receiveDataComputation(aid, serviceId, serviceToken, inputs, params);
+                    this.receiveDataComputation(aid, serviceId, serviceToken, inputData, inputs, params);
                 }, 1000)
             }
         },
@@ -1369,11 +1533,11 @@ var taskList = [];
                 this.websocketSend(msg);
             } else if (this.websock.readyState === this.websock.CONNECTING) {
                 setTimeout(function () {
-                    this.receiveDataInputDataOperation(inputs);
+                    this.receiveDataInputDataOperation(inputMdl, addOrRemove);
                 }, 1000)
             } else {
                 setTimeout(function () {
-                    this.receiveDataInputDataOperation(inputs);
+                    this.receiveDataInputDataOperation(inputMdl, addOrRemove);
                 }, 1000)
             }
         },
@@ -1523,6 +1687,12 @@ var taskList = [];
         return resaveFile(file, JSON.stringify(info));
     }
 
+
+    function loadingBackendOperation(oid) {
+        refreshOperation(oid)
+    }
+
+
     /**
      * 活动socket转态信息
      * get socket status
@@ -1589,20 +1759,21 @@ var taskList = [];
      * @param aid
      * @param serviceId
      * @param serviceToken
+     * @param inputData
      * @param inputs
      * @param params
      * @param callback
      */
-    function sendDataOperation(aid, serviceId, serviceToken, inputs, params) {
-        CollabSocket.receiveDataComputation(aid, serviceId, serviceToken, inputs, params);
+    function sendDataOperation(aid, serviceId, serviceToken, inputData, inputs, params) {
+        CollabSocket.receiveDataComputation(aid, serviceId, serviceToken, inputData, inputs, params);
     }
 
     /**
      * 建立协同数据通道
      * build call back channel
      */
-    function buildSocketChannel(opeChannel, dataChannel, compChannel, peopleChannel) {
-        CollabSocket.initSocketChannel(opeChannel, dataChannel, compChannel, peopleChannel);
+    function buildSocketChannel(opeChannel, resChannel, compChannel, peopleChannel) {
+        CollabSocket.initSocketChannel(opeChannel, resChannel, compChannel, peopleChannel);
     }
 
     //

@@ -352,7 +352,7 @@
       goRegister() {
         this.$router.push({name: "Register"});
       },
-      sendResetEmail() {   
+      sendResetEmail() {
         this.axios
           .get(
             "/GeoProblemSolving/user/sendEmail/" +

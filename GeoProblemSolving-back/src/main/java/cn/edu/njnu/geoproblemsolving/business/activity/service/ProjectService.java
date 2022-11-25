@@ -7,6 +7,9 @@ import cn.edu.njnu.geoproblemsolving.business.activity.entity.Project;
 import cn.edu.njnu.geoproblemsolving.Entity.EmailEntity;
 import com.alibaba.fastjson.JSONObject;
 
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 public interface ProjectService {
@@ -25,6 +28,8 @@ public interface ProjectService {
     JsonResult findChildren(String aid);
 
     JsonResult joinProject(String aid, String userId);
+
+    JsonResult joinProject(String aid, HashSet<String> userId) throws IOException;
 
     JsonResult updateMemberRole(String aid, String userId, String role);
 

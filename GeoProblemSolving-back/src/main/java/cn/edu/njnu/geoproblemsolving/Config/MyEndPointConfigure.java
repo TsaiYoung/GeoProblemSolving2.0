@@ -33,7 +33,8 @@ public class MyEndPointConfigure extends ServerEndpointConfig.Configurator imple
     {
         HttpSession httpSession = (HttpSession)request.getHttpSession();
         if (httpSession!=null){
-            System.out.println("获得到userId："+httpSession.getAttribute("userId"));
+            // System.out.println("-----1----MyEndPointConfigure--: " + httpSession.getId());
+            // System.out.println("获得到userId："+httpSession.getAttribute("userId"));
             config.getUserProperties().put(HttpSession.class.getName(),httpSession);
         }
     }

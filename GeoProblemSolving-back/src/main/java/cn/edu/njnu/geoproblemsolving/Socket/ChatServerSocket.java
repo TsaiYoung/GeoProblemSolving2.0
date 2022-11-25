@@ -181,7 +181,7 @@
 //        String srcUserId = messageObject.getString("srcUserId");
 //        String targetUserId = messageObject.getString("targetUserId");
 //        String content = messageObject.getString("content");
-//        Boolean concepts = messageObject.getBoolean("geoConcepts");
+//        Boolean concepts = messageObject.getBooleanValue("geoConcepts");
 //
 //        if(concepts == null) concepts = false;
 //        String relateConceptSet = "";

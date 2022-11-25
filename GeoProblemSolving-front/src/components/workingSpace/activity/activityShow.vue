@@ -113,7 +113,9 @@
                 cursor: pointer;
               "
             >
-              <p slot="title" :title="item.name">{{ item.name }}</p>
+              <p slot="title" :title="item.name" class="activityTitle">
+                {{ item.name }}
+              </p>
               <div slot="extra" style="margin-top: -10px; margin-right: -5px">
                 <Tooltip
                   trigger="hover"
@@ -299,7 +301,11 @@
         >
           <div style="display: flex; align-items: center">
             <div
-              v-if="delUserBtn && member.userId != userInfo.userId"
+              v-if="
+                delUserBtn &&
+                member.userId != userInfo.userId &&
+                roleCompare(userRole, member.role) == 1
+              "
               style="cursor: pointer; margin-right: 10px"
               @click="selectMember(member, 'delete')"
             >
@@ -309,7 +315,7 @@
               v-if="
                 userRoleBtn &&
                 member.userId != userInfo.userId &&
-                roleCompare(userRole, member.role) != -1
+                roleCompare(userRole, member.role) == 1
               "
               title="Set user role"
               style="cursor: pointer; margin-right: 10px"
@@ -321,7 +327,7 @@
               v-if="
                 userRoleBtn &&
                 (member.userId == userInfo.userId ||
-                  roleCompare(userRole, member.role) == -1)
+                  roleCompare(userRole, member.role) != 1)
               "
               :title="
                 member.role.charAt(0).toUpperCase() + member.role.slice(1)
@@ -547,21 +553,22 @@
         >
       </div>
     </Modal>
+    <login-modal
+      :tempLoginModal="tempLoginModal"
+      @changeLoginModal="changeLoginModal"
+    ></login-modal>
   </div>
 </template>
 <script>
 import { get, del, post, put } from "@/axios";
 import Avatar from "vue-avatar";
+import loginModal from "../../user/userState/loginModal.vue";
 export default {
   components: {
     Avatar,
+    loginModal,
   },
-  props: [
-    "activityInfo",
-    "nameConfirm",
-    "userInfo",
-    "projectInfo"
-   ],
+  props: ["activityInfo", "nameConfirm", "userInfo", "projectInfo"],
   data() {
     return {
       scrollOps: {
@@ -574,6 +581,8 @@ export default {
       // Members
       creatorInfo: {},
       participants: [],
+      // login
+      tempLoginModal: false,
       // add
       potentialMembers: [],
       invitingMembers: [],
@@ -728,6 +737,9 @@ export default {
         "/" +
         this.activityInfo.aid;
     },
+    changeLoginModal(status) {
+      this.tempLoginModal = status;
+    },
     preCreation() {
       if (
         !this.permissionIdentity(
@@ -764,19 +776,11 @@ export default {
           this.axios
             .post(url, this.activityForm)
             .then((res) => {
-              if (res.data.code == 0) {
-                this.operationApi.activityRecord(
-                  "",
-                  "create",
-                  this.userInfo.userId,
-                  res.data.data
-                );
-                this.operationApi.activityDocInit(
-                  res.data.data,
-                  this.userInfo
-                );
-
-                this.$emit('enterActivity', res.data.data);
+              if (res.data == "Offline") {
+                this.$store.commit("userLogout");
+                this.tempLoginModal = true;
+              } else if (res.data.code == 0) {
+                this.$emit("enterActivity", res.data.data);
               } else {
                 console.log(res.data.msg);
               }
@@ -789,10 +793,10 @@ export default {
       });
     },
     enterActivity(activity) {
-      if (this.roleIdentity(activity) == "visitor"){
-         this.$Message.info("Please join this activity.");
+      if (this.roleIdentity(activity) == "visitor") {
+        this.$Message.info("Please join this activity.");
       }
-      this.$emit('enterActivity', activity);
+      this.$emit("enterActivity", activity);
     },
     preApplication(activity) {
       this.appliedActivity = activity;
@@ -865,6 +869,7 @@ export default {
             userEmail: this.userInfo.email,
             userName: this.userInfo.name,
             userId: this.userInfo.userId,
+            userDomain: this.userInfo.domain,
             description: this.applyJoinForm.reason,
             approve: "unknow",
           },
@@ -886,6 +891,7 @@ export default {
         return;
       }
       let data = await get(url);
+      console.log(data);
 
       this.potentialMembers = [];
       this.invitingMembers = [];
@@ -921,43 +927,52 @@ export default {
     },
     inviteMembers() {
       let activity = this.activityInfo;
+      let inviteList = [];
 
       // add members
       for (var i = 0; i < this.invitingMembers.length; i++) {
         let index = this.invitingMembers[i];
         if (this.participants.contains(this.potentialMembers[index])) continue;
-
         let user = this.potentialMembers[index];
-        let url = "";
-        if (activity.level == 1) {
-          url =
-            "/GeoProblemSolving/subproject/" +
-            activity.aid +
-            "/user?userId=" +
-            user.userId;
-        } else if (activity.level > 1) {
-          url =
-            "/GeoProblemSolving/activity/" +
-            activity.aid +
-            "/user?userId=" +
-            user.userId;
-        } else {
-          return;
-        }
+        inviteList.push(user.userId);
+      }
 
-        this.axios
-          .post(url)
-          .then((res) => {
-            if (res.data.code == 0) {
+      let url = "";
+      if (activity.level == 1) {
+        url =
+          "/GeoProblemSolving/subproject/" +
+          activity.aid +
+          "/userBatch?userIds=" +
+          inviteList.toString();
+      } else if (activity.level > 1) {
+        url =
+          "/GeoProblemSolving/activity/" +
+          activity.aid +
+          "/userBatch?userIds=" +
+          inviteList.toString();
+      } else {
+        return;
+      }
+
+      this.axios
+        .post(url)
+        .then((res) => {
+          if (res.data.code == 0) {
+            //添加活动文档和发送信息
+            for (var i = 0; i < this.invitingMembers.length; i++) {
+              let index = this.invitingMembers[i];
+              if (this.participants.contains(this.potentialMembers[index]))
+                continue;
+              let user = this.potentialMembers[index];
               this.participants.push(user);
-              this.operationApi.participantUpdate(
-                this.activityInfo.aid,
-                "invite",
-                user.userId,
-                user.name,
-                user.role,
-                user.domain
-              );
+              // this.operationApi.participantUpdate(
+              //   this.activityInfo.aid,
+              //   "join",
+              //   user.userId,
+              //   user.name,
+              //   "ordinary-member",
+              //   user.domain
+              // );
               this.$Notice.info({ desc: "Invite member successfully" });
 
               //notice
@@ -985,14 +1000,14 @@ export default {
                 },
               };
               this.sendNotice(notice);
-            } else {
-              console.log(res.data.msg);
             }
-          })
-          .catch((err) => {
-            throw err;
-          });
-      }
+          } else {
+            console.log(res.data.msg);
+          }
+        })
+        .catch((err) => {
+          throw err;
+        });
     },
     selectMember(member, operation) {
       if (operation == "delete") {
@@ -1028,6 +1043,7 @@ export default {
         .delete(url)
         .then((res) => {
           if (res.data.code == 0) {
+            this.operationApi.getActivityDoc(this.activityInfo.aid);
             this.operationApi.participantUpdate(
               this.activityInfo.aid,
               "remove",
@@ -1110,14 +1126,15 @@ export default {
         .put(url)
         .then((res) => {
           if (res.data.code == 0) {
+            this.slctRoleMember.role = role;
             this.$Notice.info({ desc: "Change the member role successfully" });
             this.operationApi.participantUpdate(
               this.activityInfo.aid,
               "role",
               member.userId,
               member.name,
-              member.role,
-              user.domain
+              role,
+              member.domain
             );
             this.getParticipants();
 
@@ -1189,8 +1206,11 @@ export default {
               []
             );
             //
-            this.$Notice.info({ title: "Leave the activity", desc: "Success!" });
-            this.$emit('enterRootActivity');
+            this.$Notice.info({
+              title: "Leave the activity",
+              desc: "Success!",
+            });
+            this.$emit("enterRootActivity");
             //notice
             let managers = this.userRoleApi.getMemberByRole(
               activity,
@@ -1233,7 +1253,7 @@ export default {
       this.axios
         .post("/GeoProblemSolving/notice/save", notice)
         .then((result) => {
-          if (result.data == "Success") {            
+          if (result.data == "Success") {
             this.$store.commit("addNotification", notice);
             // this.$Notice.info({ desc: "Send notice successfully" });
           } else {
@@ -1257,6 +1277,7 @@ export default {
 <style scoped>
 .childrenCard >>> .ivu-card-head {
   padding: 5px 10px;
+  width: 90%;
 }
 .memberImg {
   width: 40px;
@@ -1295,9 +1316,12 @@ export default {
 }
 .childDescription {
   display: -webkit-box;
-  word-break: break-all;
+  word-break: break-word;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 5;
   overflow: hidden;
+}
+.activityTitle >>> .ivu-card-head p {
+  width: 90%;
 }
 </style>

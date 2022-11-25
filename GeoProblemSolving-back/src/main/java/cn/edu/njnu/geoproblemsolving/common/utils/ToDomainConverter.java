@@ -32,7 +32,7 @@ public interface ToDomainConverter<DOMAIN> {
      */
     default void updateTo(DOMAIN domain)  {
         invokeMethodByAnnotation(domain,BEFORE_UPDATE);
-        CopyUtils.copyProperties(domain, this);
+        CopyUtils.copyProperties(this, domain);
     }
 
     /**

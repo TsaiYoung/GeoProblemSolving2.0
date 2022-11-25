@@ -808,14 +808,14 @@
             <Col span="8">
               <RadioGroup v-model="formValidate.type">
                 <Radio label="simple">Simple task</Radio>
-                <Radio
+                <!-- <Radio
                   label="activity"
                   style="margin-left: 20px"
                   v-show="
                     childActivities != undefined && childActivities.length > 0
                   "
                   >Activity task</Radio
-                >
+                > -->
               </RadioGroup></Col
             >
             <Col span="13" v-show="formValidate.type == 'activity'">
@@ -1542,7 +1542,6 @@ export default {
           this.todoLoading = false;
           if (res.data == "Offline") {
             this.$store.commit("userLogout");
-            this.tempLoginModal = true;
           } else if (res.data != "None" && res.data != "Fail") {
             this.$set(this, "taskTodo", res.data);
           } else {
@@ -1564,7 +1563,6 @@ export default {
           this.doingLoading = false;
           if (res.data == "Offline") {
             this.$store.commit("userLogout");
-            this.tempLoginModal = true;
           } else if (res.data != "None" && res.data != "Fail") {
             this.$set(this, "taskDoing", res.data);
           } else {
@@ -1586,7 +1584,6 @@ export default {
           this.doneLoading = false;
           if (res.data == "Offline") {
             this.$store.commit("userLogout");
-            this.tempLoginModal = true;
           } else if (res.data != "None" && res.data != "Fail") {
             this.$set(this, "taskDone", res.data);
           } else {
@@ -1700,6 +1697,19 @@ export default {
             // this.$router.push({ name: "Login" });
             this.tempLoginModal = true;
           } else if (res.data == "Success") {
+
+            // update activity doc
+            this.operationApi.taskUpdate(
+              this.activityInfo.aid,
+              "remove",
+              this.taskList[this.selectTaskIndex]
+            );
+            this.$store.commit("updateActivityTasks", {
+              behavior: "remove",
+              task: this.taskList.splice(this.selectTaskIndex, 1)[0],
+            });
+
+            // 协同
             let sockMsg = {};
             sockMsg["type"] = "task";
             sockMsg["behavior"] = "remove";
@@ -1709,16 +1719,6 @@ export default {
             };
             sockMsg["sender"] = this.userInfo.userId;
             socketApi.sendSock(this.socketId, sockMsg, this.socketOnMessage);
-            // update activity doc
-            this.operationApi.taskUpdate(
-              this.activityInfo.aid,
-              "remove",
-              this.taskList[this.selectTaskIndex]
-            );
-            this.$store.commit("updateActivityTasks", {
-              behavior: "remove",
-              task: this.taskList.splice(this.selectTaskIndex, 1),
-            });
           } else {
             this.$Message.error("Fail!");
           }

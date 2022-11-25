@@ -39,6 +39,9 @@ public class UserEntity {
     private String city;
     private String homepage;
     private String introduction;
+    //resource space capacity
+    private long capacity;
+    private long usedCapacity;
     @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
     private Date createdTime;
     private ArrayList<String> organizations;

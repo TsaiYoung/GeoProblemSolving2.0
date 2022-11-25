@@ -58,8 +58,8 @@ public class createRoadServlet extends HttpServlet {
 
         Geometry polyline = new Geometry(ogr.wkbLineString);
         for(int i=0,l=pointsArr.size();i<l;i++){
-            JSONArray point = pointsArr.getJSONArray(i);
-            polyline.AddPoint_2D(point.getDouble(0),point.getDouble(1));
+            JSONArray point = JSONArray.parseArray(pointsArr.getJSONObject(i).toJSONString());
+            polyline.AddPoint_2D(Double.parseDouble(point.get(0).toString()), Double.parseDouble(point.get(1).toString()));
         }
         tempFeature.SetGeometry(polyline);
         layer.CreateFeature(tempFeature);

@@ -3,7 +3,7 @@
     <Menu
       mode="horizontal"
       :active-name="activeMenu"
-      style="height: 45px; line-height: 45px;"
+      style="height: 38px; line-height: 38px;"
       @on-select="changeMenuItem"
     >
       <MenuItem name="Introduction">
@@ -85,9 +85,9 @@
         lastMenuName: "Introduction"
       };
     },
-    created() {
-    },
     mounted() {
+      //load activity xml
+      this.operationApi.getActivityDoc(this.activityInfo.aid);
     },
     beforeDestroy() {
       this.closeTaskSocket();
@@ -112,29 +112,34 @@
         this.panel = data;
       },
       changeMenuItem(name) {
+        //Changing the show component
         this.activeMenu = name;
         if (this.lastMenuName == "Tasks"){
           this.closeTaskSocket(this.taskSocketId);
-        }
-        if (this.lastMenuName == "Activities"){
+        }else if (this.lastMenuName === "Activities"){
           this.closeTaskSocket(this.processSocketId);
+          //Clean the component's parameters.
           this.$refs.processLink.collaboratingInfoList = [];
           this.$refs.processLink.collaboratingId = [];
           this.$refs.processLink.collaIndex = -1;
+          //Maybe the problem occurred in here.
           this.$refs.processLink.participants = [];
           this.$refs.processLink.collLinkUser = [];
         }
-        if (name == "Tasks"){
+        //Connecting with socket.
+        if (name === "Tasks"){
+          //Send the participants info in here.
           this.initTaskSocket(this.taskSocketId, name);
-        }
-        if (name == "Activities"){
+        }else if (name === "Activities"){
           this.initTaskSocket(this.processSocketId, name)
         }
         this.lastMenuName = name;
       },
-      initTaskSocket(socketId, name) {
-        if (socketApi.getSocketInfo(this.socketId).linked) {
-          console.log(`${this.projectInfo.name}: ${this.activityInfo.name} task has connected.`);
+
+      initTaskSocket: function (socketId, name) {
+        let linkStatus = socketApi.getSocketInfo(socketId).linked;
+        if (linkStatus !== undefined && linkStatus) {
+          console.log(`${this.projectInfo.name}: ${this.activityInfo.name} has connected.`);
           return;
         }
         socketApi.initWebSocket(socketId);
@@ -163,7 +168,7 @@
         if (socketApi.getSocketInfo(socketId).linked) {
           socketApi.close(socketId);
           if (!socketApi.getSocketInfo(socketId).linked) {
-            console.log("Closed successfully")
+            console.log("Closed successfully");
           }
         }
       },

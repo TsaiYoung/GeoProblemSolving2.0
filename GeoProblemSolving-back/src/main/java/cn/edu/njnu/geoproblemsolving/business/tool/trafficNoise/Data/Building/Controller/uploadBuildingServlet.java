@@ -54,9 +54,14 @@ public class uploadBuildingServlet extends HttpServlet {
             }
 
             fileUtils.downloadFileFromURL(address, localDir, name + suffix);
+            System.out.println("start unzip");
+
             fileUtils.upZipFile(localDir + name + suffix, localDir);
+            System.out.println("finish unzip");
 
             JSONObject dataInfo = prepareBuildingData(localDir + "Building");
+            System.out.println("prepare building data");
+
             copyDbfFile(localDir + "Building");
             if (dataInfo.size() > 0) {
                 respJson.put("respCode", 1);
@@ -69,7 +74,7 @@ public class uploadBuildingServlet extends HttpServlet {
                 respJson.put("url", "\\GeoProblemSolving\\" + zipUrl + "Building");
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());
+            System.err.println(e.getMessage());
         }
         return respJson.toString();
     }

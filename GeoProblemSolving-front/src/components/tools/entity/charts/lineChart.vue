@@ -1,59 +1,80 @@
 <style>
 @import "../../../../../static/css/jquery.jexcel.css";
+.labelTile {
+  font-size: larger;
+  font-weight: bold;
+  margin: 5px 0;
+}
 </style>
 <template>
-  <Row>
-    <toolStyle
-      :participants="participants"
-      :resources="resources"
-      v-on:resourceUrl="selecetResource"
-    ></toolStyle>
-    <div style="width: 300px; padding:30px;margin-left:60px; float:left">
-      <h3>Type of chart:</h3>
-      <Select
-        v-model="chooseType"
-        style="width:200px;padding-top:10px"
-        :placeholder="chartTypePlaceholder"
-      >
-        <Option v-for="item in normalChart" :value="item.value" :key="item.value">{{ item.label }}</Option>
-      </Select>
-      <RadioGroup v-model="SelectAxis">
-        <Radio label="X-Axis" style="padding:20px 0 10px 0"></Radio>
-        <Input v-model="SelectX" style="width:200px" readonly />
-        <Radio label="Y-Axis" style="padding:20px 0 10px 0"></Radio>
-        <Input v-model="SelectY" style="width:200px" readonly />
-        <Radio
-          v-model="smoothed"
-          @click.native="smoothed = !smoothed"
-          style="margin-top:20px"
-        >Smooth</Radio>
-      </RadioGroup>
-      <Button @click="Visualize" style="margin-top:30px">Visualization</Button>
-      <Button v-if="visualization" @click="back2Table" style="margin-top:30px">Select data</Button>
+  <div>
+    <div id="collab-tool-head"></div>
+    <div id="collab-tool-sidebar"></div>
+    <div id="collab-tool-content">
+      <div id="edit-mask" title="The other participant is operating."></div>
+
+      <!-- coding for your tools // begin-->      
+      <vue-scroll :ops="ops" style="height: calc(100vh - 40px)">
+        <div style="width: 95%; padding:10px;margin-left:10px; float:left; margin-top:20px;">
+          <Label class="labelTile">Type of chart:</Label>
+          <Select
+            v-model="chooseType"
+            style="width:180px; margin-left: 7px;"
+            :placeholder="chartTypePlaceholder"
+            @on-change="chooseTypeChange"
+          >
+            <Option v-for="item in normalChart" :value="item.value" :key="item.value">{{ item.label }}</Option>
+          </Select>
+          <RadioGroup v-model="SelectAxis" @on-change="sendRadioParams(SelectAxis, 'axis') ">
+            <Radio label="X-Axis" class="labelTile" style="margin-left:7px;"></Radio>
+            <Input v-model="SelectX" style="width:180px; margin-left:7px;" readonly/>
+            <Radio label="Y-Axis" class="labelTile" style="margin-left:7px;"></Radio>
+            <Input v-model="SelectY" style="width:180px; margin-left:7px;" readonly/>
+            <Radio
+              v-model="smoothed"
+              @click.native="sendSmoothedParams(smoothed, 'smoothed') "
+              class="labelTile"
+              style="margin-left:7px;"
+            >Smooth</Radio>
+          </RadioGroup>
+          <Button @click="Visualize" style="margin-left:7px;">Visualization</Button>
+          <Button v-if="visualization" @click="back2Table" style="margin-left:7px;">Select data</Button>
+        </div>
+        <div style=" float:left; width: 90%; margin: 20px 20px;">
+          <div
+            v-show="visualization"
+            id="visualization"
+            style="width:calc(75vw); height:calc(90vh);background-color:#f8f8f9; margin: 15px 10px; padding:2% 10%;"
+          ></div>
+          <div v-show="!visualization">
+            <div id="mytable" style="height:calc(90vh);"></div>
+          </div>
+        </div>
+      </vue-scroll>
     </div>
-    <div style="padding-top:30px; float:left; width: calc(100vw - 400px)">
-      <div
-        v-show="visualization"
-        id="visualization"
-        style="width: calc(100vw - 400px); height:calc(90vh);background-color:#f8f8f9"
-      ></div>
-      <div v-show="!visualization">
-        <div id="mytable" style="height:calc(90vh)"></div>
-      </div>
-    </div>
-  </Row>
+  </div>
 </template>
 <script>
 import * as socketApi from "@/api/socket.js";
 import csv from "@static/js/jquery.csv.min.js";
 import jexcel from "@static/js/jquery.jexcel.js";
 import XLSX from "xlsx";
-import echarts from "echarts";
-import toolStyle from "../toolStyle";
+import * as echarts from "echarts";
 export default {
-  components: { toolStyle },
   data() {
     return {
+       ops: {
+        bar: {
+          background: "#808695",
+        },
+      },
+      // basic info
+      activityInfo: {},
+      toolId: "",
+      participants: [],
+      userInfo: {},
+      resources: [],
+
       sidebarHeight: 0,
       visualization: false,
       testData: [],
@@ -85,18 +106,45 @@ export default {
       participants: [],
       olParticipants: [],
       resources: [],
-      dataUrl: ""
+      dataUrl: "",
+      selectFile: {},
     };
   },
   beforeDestroy() {
     // this.socketApi.close();
   },
+  created() {},
   mounted() {
+    this.Charts = echarts.init(document.getElementById("visualization"));
+    // 加载协同组件
+    loadCollabComponent();
     this.init();
-    this.getResources();
-    this.startWebSocket();
+    this.getStepInfo();
   },
   methods: {
+    getStepInfo() {
+      if (componentStatus) {
+        // 获取数据
+        this.activityInfo = activityInfo;
+        this.toolId = toolId;
+        this.participants = onlineMembers;
+        this.userInfo = userInfo;
+        this.resources = resources;
+
+        // 绑定函数
+        buildSocketChannel(
+          this.getSocketOperation,
+          this.getSocketData,
+          this.getSocketComputation
+        );
+        loadResChannel = this.loadResources;
+      } else {
+        let _this = this;
+        setTimeout(function () {
+          _this.getStepInfo();
+        }, 1000);
+      }
+    },
     init() {
       $("#app").css("min-width", "0");
       $("#app").css("min-height", "0");
@@ -104,58 +152,108 @@ export default {
       $("#mytable").jexcel({
         data: this.testData,
         minDimensions: [20, 20],
-        onselection: this.selectData
+        onselection: this.selectData,
+        onchange: this.tableChange
       });
-      this.getStepInfo();
-      this.getUserInfo();
     },
-    getStepInfo() {
-      if (
-        this.$route.params.groupID == undefined ||
-        this.$route.params.groupID == ""
-      ) {
-        var href = window.location.href;
-        var url = href.split("&");
-
-        for (var i = 0; i < url.length; i++) {
-          if (/groupID/.test(url[i])) {
-            this.pageParams.pageId = url[i].match(/groupID=(\S*)/)[1];
-            continue;
-          }
-
-          if (/userID/.test(url[i])) {
-            this.pageParams.userId = url[i].match(/userID=(\S*)/)[1];
-            continue;
-          }
-
-          if (/userName/.test(url[i])) {
-            this.pageParams.userName = url[i].match(/userName=(\S*)/)[1];
-            continue;
-          }
+    getSocketOperation(data) {
+      // 接受socket指令、进行相应操作
+      let behavior = data.behavior;
+      let content = JSON.parse(data.content);
+      let sender = data.sender;
+      if (behavior == "visualize") {
+        // this.chooseType = content.chartType;
+        this.DataX = content.dataX;
+        this.DataY = content.dataY;
+        this.smoothed = content.smooth;
+        this.showCharts();
+      } else if (behavior == "select"){
+        this.chooseType = content.value;
+      } else if (behavior == "selectData"){
+        if(this.SelectAxis == "X-Axis"){
+          this.SelectX = content.value;
+        } else if (this.SelectAxis == "Y-Axis"){
+          this.SelectY = content.value;
         }
-      } else {
-        this.pageParams.pageId = this.$route.params.groupID;
-        this.pageParams.userId = this.$route.params.userID;
-        this.pageParams.userName = this.$route.params.userName;
+      } else if (behavior == "radio"){
+        //编辑信息协同2 输入参数
+        if(content.type == "smoothed"){
+          this.smoothed = !this.smoothed;
+        }
+      } 
+       else if (behavior == "params"){
+        //编辑信息协同2 输入参数
+        if(content.stateIndex == "axis"){
+          this.SelectAxis = content.inputs;
+        } else if (content.stateIndex == "SelectX"){
+          this.SelectX =  content.inputs;
+        } else if (content.stateIndex == "SelectY"){
+          this.SelectY =  content.inputs;
+        }
+        
+      } 
+    },
+    getSocketData(data) {
+      // socket数据操作
+      let behavior = data.behavior;
+      let content = JSON.parse(data.content);
+      let sender = data.sender;
+      if (behavior == "select"){
+        // console.log(content);
+        // this.selectData = content;
+        // console.log(this.selectData);
+      } else if(behavior == "file") {
+        this.selectFile = content.data;
+        if (/\.(csv|xls|xlsx)$/.test(this.selectFile.suffix.toLowerCase())) {
+          var that = this;
+          var xhr = new XMLHttpRequest();
+          xhr.open("GET", this.selectFile.address, true);
+          xhr.responseType = "blob";
+          xhr.onload = function(e) {
+            if (this.status == 200) {
+              var file = this.response;
+              that.fillTable(file);
+            }
+          };
+          xhr.send();
+        } else {
+          this.$Message.error("Worry data format!");
+        }
       }
     },
-    getUserInfo() {
-      this.userInfo = JSON.parse(sessionStorage.getItem("userInfo"));
-      if (this.userInfo == {}) {
-        this.axios
-          .get(
-            "/GeoProblemSolving/user" +
-            "?key=userId" +
-            "&value=" +
-              this.pageParams.userId
-          )
-          .then(res => {
-            if (res.data.code == 0) {
-              this.$set(this, "userInfo", res.data.data);
+    getSocketComputation(data) {
+      
+    },
+    loadResources(resList) {
+      let type = "";
+      for (let i = 0; i < resList.length; i++) {
+        // your function
+        this.selectFile = resList[0];
+        if (/\.(csv|xls|xlsx)$/.test(this.selectFile.suffix.toLowerCase())) {
+          var that = this;
+          var xhr = new XMLHttpRequest();
+          xhr.open("GET", this.selectFile.address, true);
+          xhr.responseType = "blob";
+          xhr.onload = function(e) {
+            if (this.status == 200) {
+              var file = this.response;
+              that.fillTable(file);
             }
-          })
-          .catch(err => {});
+          };
+          xhr.send();
+        } else {
+          this.$Message.error("Worry data format!");
+        }
       }
+      let send_content = {
+        type: "resource",
+        sender: this.userInfo.userId,
+        behavior: "file",
+        content: {
+          data: this.selectFile,
+        }
+      };
+      sendCustomOperation(send_content);
     },
     fillTable(file) {
       var that = this;
@@ -190,7 +288,8 @@ export default {
             tableOverflow: false,
             minDimensions: [20, 20],
             csvHeaders: true,
-            onselection: that.selectData
+            onselection: that.selectData,
+            onchange: that.tableChange
           });
           that.$refs.upload.value = "";
         } catch (e) {
@@ -232,6 +331,21 @@ export default {
         this.SelectY = start + "->" + end;
         this.DataY = this.getData(startXY, endXY);
       }
+       // websocket
+      let paramsMsg = {
+        type: "operation",
+        behavior: "selectData",
+        content: {
+          type: this.SelectAxis,
+          value: start + "->" + end,
+        },
+        sender: this.userInfo.userId,
+      };
+      sendCustomOperation(paramsMsg);
+    },
+    tableChange(oldValue,newValue){
+      // console.log(oldValue);
+      // console.log(newValue);
     },
     getData(start, end) {
       //取值
@@ -277,6 +391,10 @@ export default {
           : this.DataY[0].length;
       if (this.chooseType == "Line") {
         var option = {
+          grid:{
+            width: 400,
+            borderWidth:1
+          },
           xAxis: {
             type: "category",
             name: this.DataX[0][0],
@@ -301,15 +419,20 @@ export default {
         if (this.Charts != null) {
           this.Charts.dispose();
           this.Charts = null;
+          this.Charts = echarts.init(document.getElementById("visualization"));
         }
-        this.Charts = echarts.init(document.getElementById("visualization"));
         this.Charts.setOption(option);
       } else if (this.chooseType == "Stacked-line") {
         var option = {
+          grid:{
+            width: 400,
+            borderWidth:1
+          },
           tooltip: {
             trigger: "axis"
           },
           legend: {
+            itemWidth: 20,
             data: []
           },
           xAxis: {
@@ -344,8 +467,8 @@ export default {
         if (this.Charts != null) {
           this.Charts.dispose();
           this.Charts = null;
+          this.Charts = echarts.init(document.getElementById("visualization"));
         }
-        this.Charts = echarts.init(document.getElementById("visualization"));
         this.Charts.setOption(option);
       }
     },
@@ -353,12 +476,53 @@ export default {
       if (this.DataX.length == 0 || this.DataY.length == 0) {
         return;
       }
-      this.socket_content["chartType"] = this.chooseType;
-      this.socket_content["operate"] = "visualize";
-      this.socketApi.sendSock(this.socket_content, this.getSocketConnect);
-      // this.socket_content = {};
+      let send_content = {
+        type: "operation",
+        sender: this.userInfo.userId,
+        behavior: "visualize",
+        content: {
+          chartType: this.chooseType,
+          dataX: this.DataX,
+          dataY: this.DataY,
+          smooth: this.smoothed,
+        }
+      };
+      sendCustomOperation(send_content);
 
       this.showCharts();
+    },
+    chooseTypeChange(value){
+      // websocket
+      let paramsMsg = {
+        type: "operation",
+        behavior: "select",
+        content: {
+          type: "chooseType",
+          value: value,
+        },
+        sender: this.userInfo.userId,
+      };
+      sendCustomOperation(paramsMsg);
+    },
+    sendSmoothedParams: function (modelInEvent, stateIndex) {
+      this.smoothed = !this.smoothed;
+      // websocket
+      let paramsMsg = {
+        type: "operation",
+        behavior: "radio",
+        content: {
+          type: stateIndex,
+          value: modelInEvent,
+        },
+        sender: this.userInfo.userId,
+      };
+      sendCustomOperation(paramsMsg);
+    },
+    sendRadioParams: function (modelInEvent, stateIndex) {
+      sendInputParams(modelInEvent, stateIndex);
+    },
+    sendInputParams: function (modelInEvent, stateIndex) {
+      sendInputParams(modelInEvent, stateIndex);
     },
     getSocketConnect(data) {
       let socketData = data;
@@ -409,154 +573,6 @@ export default {
         }
       }
     },
-    startWebSocket() {
-      if (this.pageParams.pageId == undefined || this.pageParams.pageId == "") {
-        this.$Message.error("Lose the information of current step.");
-        return false;
-      }
-
-      let roomId = this.pageParams.pageId;
-      this.socketApi.initWebSocket(
-        "ChartsServer/" + "line" + roomId,
-        this.$store.state.IP_Port
-      );
-
-      this.send_msg = {
-        type: "test",
-        from: "Test",
-        content: "TestChat"
-      };
-      this.socketApi.sendSock(this.send_msg, this.getSocketConnect);
-    },
-    getResources() {
-      if (this.pageParams.pageId == undefined || this.pageParams.pageId == "") {
-        this.$Message.error("Lose the information of current step.");
-        return false;
-      }
-
-      this.resources = [];
-      this.axios
-        .get(
-          "/GeoProblemSolving/folder/inquiry?folderId=" + this.pageParams.pageId
-        )
-        .then(res => {
-          // 写渲染函数，取到所有资源
-          if (res.data !== "None") {
-            for (let i = 0; i < res.data.files.length; i++) {
-              if (
-                res.data.files[i].type == "data" &&
-                /\.(xls|xlsx|csv)$/.test(res.data.files[i].name.toLowerCase())
-              ) {
-                this.resources.push(res.data.files[i]);
-              }
-            }
-          } else {
-            this.resources = [];
-          }
-        })
-        .catch(err => {
-          console.log(err.data);
-        });
-    },
-    selecetResource(url) {
-      this.dataUrl = url;
-
-      // 协同
-      this.send_content = {
-        operate: "selectdata",
-        pathURL: this.dataUrl
-      };
-      this.socketApi.sendSock(this.send_content, this.getSocketConnect);
-
-      this.viewData();
-    },
-    viewData() {
-      if (/\.(csv|xls|xlsx)$/.test(this.dataUrl.toLowerCase())) {
-        var that = this;
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", this.dataUrl, true);
-        xhr.responseType = "blob";
-        xhr.onload = function(e) {
-          if (this.status == 200) {
-            var file = this.response;
-            that.fillTable(file);
-          }
-        };
-        xhr.send();
-      } else {
-        this.$Message.error("Worry data format!");
-      }
-
-      this.showFile = false;
-    },
-    olParticipantChange() {
-      let userIndex = -1;
-
-      // 自己刚上线，olParticipants空
-      if (this.participants.length == 0) {
-        for (let i = 0; i < this.olParticipants.length; i++) {
-          this.axios
-            .get(
-              "/GeoProblemSolving/user" +
-            "?key=userId" +
-            "&value=" +
-                this.olParticipants[i]
-            )
-            .then(res => {
-              if (res.data.code == 0) {
-                this.participants.push(res.data.data);
-              } else {
-              }
-            });
-        }
-      } else {
-        // members大于olParticipants，有人上线；小于olParticipants，离线
-        if (this.olParticipants.length > this.participants.length) {
-          for (var i = 0; i < this.olParticipants.length; i++) {
-            for (var j = 0; j < this.participants.length; j++) {
-              if (this.olParticipants[i] == this.participants[j].userId) {
-                break;
-              }
-            }
-            if (j == this.participants.length) {
-              userIndex = i;
-              break;
-            }
-          }
-
-          // 人员渲染
-          var that = this;
-          this.axios
-            .get(
-             "/GeoProblemSolving/user" +
-            "?key=userId" +
-            "&value=" +
-                this.olParticipants[userIndex]
-            )
-            .then(res => {
-              if (res.data.code == 0) {
-                that.participants.push(res.data.data);
-                if (userIndex != -1) {
-                }
-              } else {
-              }
-            });
-        } else if (this.olParticipants.length < this.participants.length) {
-          for (var i = 0; i < this.participants.length; i++) {
-            for (var j = 0; j < this.olParticipants.length; j++) {
-              if (this.participants[i].userId == this.olParticipants[j]) {
-                break;
-              }
-            }
-            if (j == this.olParticipants.length) {
-              userIndex = i;
-              break;
-            }
-          }
-          this.participants.splice(userIndex, 1);
-        }
-      }
-    }
   }
 };
 </script>

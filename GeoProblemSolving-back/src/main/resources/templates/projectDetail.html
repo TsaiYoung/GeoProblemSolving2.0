@@ -6,7 +6,7 @@
     <meta http-equiv="expires" content="0">
     <link rel="shortcut icon" href="/GeoProblemSolving/static/favicon.ico">
     <title th:text="${projectInfo.name}+' | Geo-ProblemSolving'"></title>
-    <meta http-equiv="Content-Type" content=" charset=UTF-8"/>
+    <meta http-equiv="Content-Type" content="charset=UTF-8"/>
     <meta name="description" th:attr="content=${projectInfo.description}">
     <meta name="keywords" th:attr="content=${projectInfo.tag}">
     <meta name="author" content="OpenGMS">
@@ -528,6 +528,13 @@
                                                                 <Icon type="md-git-branch" :size="25"></Icon>
                                                                 <strong>Enter Workspace</strong>
                                                             </i-button>
+                                                            <i-button
+                                                                    v-if="!tempUser && userRole == 'manager'"
+                                                                    class="changeInviteColor"
+                                                                    @click="showShareURL()">
+                                                                <Icon type="md-share-alt" :size="25"></Icon>
+                                                                <strong>Share Project</strong>
+                                                            </i-button>
                                                         </div>
                                                     </div>
                                                 </i-col>
@@ -557,7 +564,7 @@
                                                 <div slot="extra">
                                                     <div>
                                                         <Poptip trigger="hover" content="Invite members"
-                                                                v-if="detailPermissionIdentity(projectInfo.permission, userRole, 'invite_member')"
+                                                                v-if="detailPermissionIdentity(projectInfo.permission, userRole, 'invite_member') & !tempUser"
                                                                 placement="left">
                                                             <i-button class="changeInviteColor"
                                                                       @click="inviteModalShow()">
@@ -580,7 +587,8 @@
                                                     <vue-scroll :ops="scrollOps">
                                                         <Card v-for="member in participants"
                                                               style="margin-top: 5px;cursor: pointer;"
-                                                              @click.native=goPersonalPage(member.userId)>
+                                                              >
+<!--                                                            @click.native=goPersonalPage(member.userId)-->
                                                             <div title="Member">
                                                                 <h2 class="overEllipsis">{{member.name}}</h2>
                                                             </div>
@@ -598,7 +606,7 @@
 
                 <div v-show="activeMenu=='workspace'" :style="{height: contentPageCSS + 'px'}">
                     <div style="background:#eee;padding: 10px;">
-                        <div >
+                        <div>
                             <iframe style="border-width:0"
                                     :style="{height: contentPageCSS - 20 + 'px'}"
                                     :src="ipPort+'/activityInfo/' + projectInfo.aid"></iframe>
@@ -866,6 +874,32 @@
                         <i-button type="primary" @click="resetProjectType()">Submit</i-button>
                     </div>
                 </Modal>
+                <Modal
+                        v-model="shareProjectUrlModalShow"
+                        title="Share project"
+                        footer-hide
+                        width="600"
+                >
+                    <Alert show-icon closable>
+                        Tips:
+                        <Icon type="ios-bulb-outline" slot="icon"></Icon>
+                        <template slot="desc">Create temporary operators and quickly share project by using the web URL.</template>
+                    </Alert>
+                    <div style="margin-top: 10px; min-height: 50px;">
+                        <span  style="float: left;margin: 5px 0;"><h4 style="width: 120px; height: 30px; line-height: 30px;"/>{{ shareProjectUrl.TempUserName}}: </h4></span>
+                        <span  style="float: left;margin: 5px 0;"><i-input v-model="shareProjectUrl.url" id="shareProjectUrl" style="width: 350px; height: 30px;"/></span>
+                        <span  style="float: left;margin: 5px 0;"><i-button type="primary" @click="copyProjectUrl()" >copy</i-button></span>
+                        <span  style="float: right;margin: 5px 0;"><i-button shape="circle" icon="md-add" @click="addProjectUrl()" ></i-button></span>
+                    </div>
+                    <div v-if="shareProjectUrlList.length > 0" >
+                        <div v-for="(item,index) in shareProjectUrlList" :key="index" :id="forId(index)" style="min-height: 45px;">
+                            <span  style="float: left;margin: 5px 0;"><h4 style="width: 120px; height: 30px; line-height: 30px;"/>{{ item.TempUserName}}: </h4></span>
+                            <span  style="float: left;margin: 5px 0;"><i-input v-model="item.url" id="shareProjectUrl" style="width: 350px; height: 30px;"/></span>
+                            <span  style="float: left;margin: 5px 0;"><i-button type="primary" @click="copyAddProjectUrl(index)" >copy</i-button></span>
+                            <span  style="float: right;margin: 5px 0;"><i-button shape="circle" icon="md-remove" @click="removeProjectUrl(index)" ></i-button></span>
+                        </div>
+                    </div>
+                </Modal>
             </div>
         </div>
     </template>
@@ -883,22 +917,6 @@
             },
             created() {
                 this.tokenStr = this.getURLParameter("token");
-                console.log(this.tokenStr);
-                if (this.tokenStr != null) {
-                    $.ajax({
-                        url: "/GeoProblemSolving/token/checkShareToken" + "?shareToken=" + this.tokenStr,
-                        type: "GET",
-                        async: false,
-                        success: data => {
-                            if (data) {
-                                this.userRole = 'Token';
-                            }
-                        },
-                        error: function (err) {
-                            console.log("Check token info fail.");
-                        }
-                    });
-                }
                 $.ajax({
                     url: "/GeoProblemSolving/user/state",
                     type: "POST",
@@ -908,9 +926,24 @@
                             data.userState = true;
                             sessionStorage.setItem('userInfo', JSON.stringify(data));
                         } else {
-                            console.log("Not logged in");
-                            if (this.userRole != "Token") {
-                                window.location.href = '/GeoProblemSolving/login';
+                            //验证token
+                            if (this.tokenStr != null) {
+                                $.ajax({
+                                    url: "/GeoProblemSolving/token/" + this.tokenStr,
+                                    type: "GET",
+                                    async: false,
+                                    success: data => {
+                                        if (data) {
+                                            data.data.userState = true;
+                                            sessionStorage.setItem('userInfo', JSON.stringify(data.data));
+                                        }
+                                    },
+                                    error: function (err) {
+                                        console.log("Check token info fail.");
+                                    }
+                                });
+                            } else {
+                                window.location.href = "/GeoProblemSolving/login";
                             }
                         }
                     },
@@ -1061,6 +1094,10 @@
                     resetProjectTypeModel: false,
                     // tool
                     workPanels: [],
+                    shareProjectUrlModalShow: false,
+                    shareProjectUrl: {},
+                    shareProjectUrlList: [],
+                    tempUser: false
                 }
             },
             watch: {
@@ -1095,12 +1132,13 @@
 
                     this.$refs.taskTreeEl.sendMessage({"type": "test"});
                 },
-                closeTaskSocket(){
-                    if (this.$refs.taskTreeEl.taskSocket != null && this.$refs.taskTreeEl.taskSocket.readyState == this.$refs.taskTreeEl.taskSocket.OPEN){
+                closeTaskSocket() {
+                    if (this.$refs.taskTreeEl.taskSocket != null && this.$refs.taskTreeEl.taskSocket.readyState == this.$refs.taskTreeEl.taskSocket.OPEN) {
                         this.$refs.taskTreeEl.taskSocket.close();
                     }
                 },
                 roleIdentity() {
+                    this.tempUser = this.userInfo.userId.length > 40;
                     this.userRole = roleIdentify(
                         this.projectInfo.members,
                         this.userInfo.userId
@@ -1148,7 +1186,6 @@
                     return null;
                 },
                 userEnter() {
-                    if (this.userRole != "Token") {
                         if (!this.userInfo.userState) {
                             window.location.href = "/GeoProblemSolving/login";
                         } else {
@@ -1156,8 +1193,6 @@
                                 window.location.href = "/GeoProblemSolving/projectList";
                             }
                         }
-
-                    }
                 },
                 resizeContent() {
                     if (window.innerHeight > 735) {
@@ -1175,17 +1210,120 @@
                         })()
                     }
                 },
+                showShareURL() {
+                    let url = window.location.href;
+                    $.ajax({
+                        url: "/GeoProblemSolving/token/all/" + this.projectInfo.aid  + "/"  + this.userInfo.userId,
+                        type: "GET",
+                        async: false,
+                        success: data => {
+                            if (data) {
+                                if(data.data.length > 0){
+                                    let list = data.data;
+                                    for( let i = 0 ;i < list.length ; i++) {
+                                        list[i].url = url + "&token=" + list[i].Token;
+                                    }
+                                    this.shareProjectUrl = list[0];
+                                    this.shareProjectUrlList = [];
+                                    for( let i = 1 ; i < list.length ; i++){
+                                        this.shareProjectUrlList.push(list[i]);
+                                    }
+                                }
+                                this.shareProjectUrlModalShow = true;
+                            }
+                        },
+                        error: function (err) {
+                            console.log("Check token info fail.");
+                        }
+                    });
+                },
+                copyProjectUrl() {
+                    let input = document.createElement("input");   // 直接构建input
+                    input.value = this.shareProjectUrl.url;  // 设置内容 需要复制的内容
+                    document.body.appendChild(input);    // 添加临时实例
+                    input.select();   // 选择实例内容
+                    document.execCommand("Copy");   // 执行复制
+                    document.body.removeChild(input); // 删除临时实例
+                    this.$Message.success('Copy successfully!');
+                    // this.shareProjectUrlModalShow = false;
+                },
+                copyAddProjectUrl(index) {
+                    let input = document.createElement("input");   // 直接构建input
+                    input.value = this.shareProjectUrlList[index].url;  // 设置内容 需要复制的内容
+                    document.body.appendChild(input);    // 添加临时实例
+                    input.select();   // 选择实例内容
+                    document.execCommand("Copy");   // 执行复制
+                    document.body.removeChild(input); // 删除临时实例
+                    this.$Message.success('Copy successfully!');
+                    // this.shareProjectUrlModalShow = false;
+                },
+                // refreshProjectUrl() {
+                //     let url = window.location.href;
+                //     $.ajax({
+                //         url: "/GeoProblemSolving/token/" + this.userInfo.userId + "/" + this.projectInfo.aid,
+                //         type: "GET",
+                //         async: false,
+                //         success: data => {
+                //             if (data) {
+                //                 this.userRole = 'Token';
+                //                 this.shareProjectUrl = url + "&token=" + data.data;
+                //                 this.$Message.success('Refresh successfully!');
+                //             }
+                //         },
+                //         error: function (err) {
+                //             console.log("Check token info fail.");
+                //         }
+                //     });
+                // },
+                addProjectUrl() {
+                    let url = window.location.href;
+                    $.ajax({
+                        url: `/GeoProblemSolving/token/${this.projectInfo.aid}/${this.userInfo.userId}`,
+                        type: "GET",
+                        async: false,
+                        success: data => {
+                            if (data) {
+                                let info = data.data;
+                                info.url = url + "&token=" + data.data.Token;
+                                this.shareProjectUrlList.push(info);
+                            }
+                        },
+                        error: function (err) {
+                            console.log("Check token info fail.");
+                        }
+                    });
+                },
+                removeProjectUrl(index) {
+                    let rm = this.shareProjectUrlList[index];
+                    //删除请求
+                    $.ajax({
+                        url: "/GeoProblemSolving/token/" + rm.Token ,
+                        type: "DELETE",
+                        async: false,
+                        success: data => {
+                            if (data) {
+                                this.shareProjectUrlList.splice(index,1);
+                            }
+                        },
+                        error: function (err) {
+                            console.log("Check token info fail.");
+                        }
+                    });
+                },
+                forId(index) {
+                    return "forid_" +index
+                },
                 changeMenuItem(name) {
-                    if (name == "task"){
+                    if (name == "task") {
                         this.initTaskSocket();
-                    }else {
+                    } else {
                         this.closeTaskSocket();
                     }
-                    if(name == 'workspace') {
+                    if (name == 'workspace') {
                         if (this.userState == false) {
                             window.location.href = "/GeoProblemSolving/login"
                         } else {
-                            if (this.userRole == 'visitor'){
+                            if (this.userRole == 'visitor') {
                                 this.$Notice.error({
                                     title: "You haven't joined the project",
                                     desc: "Please join the project first."
@@ -1256,7 +1394,7 @@
                             let formData = new FormData();
                             formData.append("picture", file);
                             axios
-                                .post("/GeoProblemSolving/resource/image", formData)
+                                .post("/GeoProblemSolving/res/image", formData)
                                 .then(res => {
                                     if (res.data.code === 0) {
                                         this.pictureUrl = res.data.data;
@@ -1331,7 +1469,7 @@
                     axios
                         .delete(
                             "/GeoProblemSolving/project?" +
-                            "projectId=" +
+                            "aid=" +
                             this.projectInfo.aid
                         )
                         .then(res => {
@@ -1461,7 +1599,10 @@
                                     .post("/GeoProblemSolving/notice/save", notice)
                                     .then(res => {
                                         if (res.data == "Success") {
-                                            this.$refs.navigationEl.sendMessage({"type": "Notice", "receiver": this.removeMemberId});
+                                            this.$refs.navigationEl.sendMessage({
+                                                "type": "Notice",
+                                                "receiver": this.removeMemberId
+                                            });
                                         }
                                     })
                                     .catch(err => {
@@ -1584,7 +1725,10 @@
                                                         desc:
                                                             "The application has been sent to managers of the project."
                                                     });
-                                                    this.$refs.navigationEl.sendMessage({"type": "Notice", "receiver": managerId});
+                                                    this.$refs.navigationEl.sendMessage({
+                                                        "type": "Notice",
+                                                        "receiver": managerId
+                                                    });
                                                     this.applyJoinModal = false;
                                                     this.haveApplied = true;
                                                 } else {

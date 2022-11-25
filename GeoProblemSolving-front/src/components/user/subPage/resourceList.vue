@@ -2,504 +2,511 @@
   <div class="fileSpace">
     <div id="title">
       <h1 style="text-align: center;margin-top: 10px;">Resource</h1>
-      <h3 style="text-align: center;margin-bottom: 10px;">you can manage your resources here</h3>
+      <h3 style="text-align: center;margin-bottom: 10px;">You can manage your resources here</h3>
     </div>
     <Row>
       <Col span="22" offset="1">
         <div>
           <Card :padding="1" dis-hover style="height: calc(100vh - 210px);" class="customCard">
-                <!-- <div
-                  slot="extra"
-                  class="resourceBtnDiv"
-                ></div> -->
-                <!-- 内容 -->
-                <div class="folderContent">
-                  <Card v-if="folderStack.length > 0" :padding="5" dis-hover>
-                    <div style="display: flex; align-items: center">
-                      <!--        all file 显示，如果file>0则显示 -->
-                      <div
-                        style="min-width: 60px"
-                        v-show="currentFolder.files.length > 0"
+            <!-- <div
+              slot="extra"
+              class="resourceBtnDiv"
+            ></div> -->
+            <!-- 内容 -->
+            <div class="folderContent">
+              <Card v-if="folderStack.length > 0" :padding="5" dis-hover>
+                <div style="display: flex; align-items: center">
+                  <!--        all file 显示，如果file>0则显示 -->
+                  <div
+                    style="min-width: 60px"
+                    v-show="currentFolder.files.length > 0"
+                  >
+                    <Checkbox
+                      :indeterminate="indeterminate"
+                      :value="checkAll"
+                      @click.prevent.native="handleCheckAll"
+                      v-show="currentFolder.files.length > 0"
+                      style="align-items: center"
+                    ><strong> All files</strong>
+                    </Checkbox
+                    >
+                  </div>
+                  <!--            面包屑显示 -->
+                  <div style="margin-left: 3px">
+                    <Breadcrumb>
+                      <BreadcrumbItem
+                        v-for="(folder, index) in folderStack"
+                        :key="folder.uid"
+                        style="cursor: pointer"
+                        @click.native="switchFolder(folder, index)"
                       >
-                        <Checkbox
-                          :indeterminate="indeterminate"
-                          :value="checkAll"
-                          @click.prevent.native="handleCheckAll"
-                          v-show="currentFolder.files.length > 0"
-                          style="align-items: center"
-                        ><strong> All files</strong>
-                        </Checkbox
-                        >
-                      </div>
-                      <!--            面包屑显示 -->
-                      <div style="margin-left: 3px">
-                        <Breadcrumb>
-                          <BreadcrumbItem
-                            v-for="(folder, index) in folderStack"
-                            :key="folder.uid"
-                            style="cursor: pointer"
-                            @click.native="switchFolder(folder, index)"
-                          >
-                            <span style="color: #2d8cf0">{{ folder.name }}</span>
-                          </BreadcrumbItem>
-                        </Breadcrumb>
-                      </div>
-                      <Divider type="vertical" style="margin-left: 20px"/>
-                      <!--           返回及新建文件夹  -->
-                      <div style="flex: 1; margin-left: 10px">
-                        <Tooltip content="Back" placement="bottom" class="fileBtn">
-                          <Icon type="md-arrow-round-back" @click="backforeFolder" style="cursor:pointer; color: #08ab2b" size="20"/>
-                        </Tooltip>
-                        <Tooltip content="New folder" placement="bottom" class="fileBtn">
-                          <Icon type="ios-folder" @click="addFolderModalShow" style="cursor:pointer; color: #f9c245" size="20"/>
-                        </Tooltip>
-                      </div>
-                      <!--            上传及下载内容 -->
-                      <div style="align-items: flex-end">
-                        <Tooltip content="Download" placement="bottom" class="fileBtn">
-                          <Button
-                            @click="downloadSelectFile"
-                            v-show="currentFolder.files.length > 0"
-                            shape="circle"
-                            icon="md-cloud-download"
-                            class="fileBtnHoverGray"
-                          ></Button>
-                        </Tooltip>
-                        <Tooltip content="Upload files" placement="bottom" class="fileBtn">
-                          <Button
-                            @click="uploadModalShow"
-                            shape="circle"
-                            icon="md-cloud-upload"
-                            class="fileBtnHoverGreen"
-                          ></Button>
-                        </Tooltip>
-          <!--              资源共享-->
+                        <span style="color: #2d8cf0">{{ folder.name }}</span>
+                      </BreadcrumbItem>
+                    </Breadcrumb>
+                  </div>
+                  <Divider type="vertical" style="margin-left: 20px"/>
+                  <!--           返回及新建文件夹  -->
+                  <div style="flex: 1; margin-left: 10px">
+                    <Tooltip content="Back" placement="bottom" class="fileBtn">
+                      <Icon type="md-arrow-round-back" @click="backforeFolder" style="cursor:pointer; color: #08ab2b"
+                            size="20"/>
+                    </Tooltip>
+                    <Tooltip content="New folder" placement="bottom" class="fileBtn">
+                      <Icon type="ios-folder" @click="addFolderModalShow" style="cursor:pointer; color: #f9c245"
+                            size="20"/>
+                    </Tooltip>
+                  </div>
+                  <!--            上传及下载内容 -->
+                  <div style="align-items: flex-end">
+                    <Tooltip content="Download" placement="bottom" class="fileBtn">
+                      <Button
+                        @click="downloadSelectFile"
+                        v-show="currentFolder.files.length > 0"
+                        shape="circle"
+                        icon="md-cloud-download"
+                        class="fileBtnHoverGray"
+                      ></Button>
+                    </Tooltip>
+                    <Tooltip content="Upload files" placement="left" class="fileBtn">
+                      <Button
+                        @click="uploadModalShow"
+                        shape="circle"
+                        icon="md-cloud-upload"
+                        class="fileBtnHoverGreen"
+                      ></Button>
+                    </Tooltip>
+                    <!--              资源共享-->
 
-                        <Tooltip
-                          content="Share personal files"
-                          placement="left"
-                          class="fileBtn"
-                        >
-          <!--                资源分享，后面再来理吧-->
-          <!--                <Button-->
-          <!--                  @click="shareModalShow"-->
-          <!--                  shape="circle"-->
-          <!--                  icon="ios-copy"-->
-          <!--                  class="fileBtnHoverOrange"-->
-          <!--                ></Button>-->
-                        </Tooltip>
+                    <Tooltip
+                      content="Share personal files"
+                      placement="left"
+                      class="fileBtn"
+                    >
+                      <!--                资源分享，后面再来理吧-->
+                      <!--                <Button-->
+                      <!--                  @click="shareModalShow"-->
+                      <!--                  shape="circle"-->
+                      <!--                  icon="ios-copy"-->
+                      <!--                  class="fileBtnHoverOrange"-->
+                      <!--                ></Button>-->
+                    </Tooltip>
+                  </div>
+                </div>
+              </Card>
+
+              <!--        资源显示区-->
+              <div
+                v-if="
+                      currentFolder.folders.length > 0 || currentFolder.files.length > 0
+                    "
+              >
+                <vue-scroll :ops="ops" :style="{ height: contentHeight + 'px' }">
+                  <!--            folder 内容 -->
+                  <Card
+                    v-for="folder in currentFolder.folders"
+                    :key="folder.uid"
+                    :padding="5"
+                  >
+                    <div>
+                      <Icon type="ios-folder-open" class="itemIcon" size="25"/>
+                      <a
+                        @click="enterFolder(folder)"
+                        class="fileItemName"
+                        :title="folder.name"
+                      >{{ folder.name }}</a
+                      >
+
+                      <!--            -->
+                      <div style="float: right">
+                        <Button
+                          @click="renameFolderModalShow(folder)"
+                          class="fileBtnHoverBlue"
+                          shape="circle"
+                          icon="ios-create"
+                          title="Rename"
+                          size="small"
+                          type="text"
+                        ></Button>
+                        <Button
+                          @click="deleteFolder(folder)"
+                          class="fileBtnHoverRed"
+                          shape="circle"
+                          icon="ios-trash"
+                          title="Delete"
+                          size="small"
+                          style="margin-left: 5px"
+                          type="text"
+                        ></Button>
                       </div>
                     </div>
                   </Card>
 
-                  <!--        资源显示区-->
-                  <div
-                    v-if="
-                      currentFolder.folders.length > 0 || currentFolder.files.length > 0
-                    "
+                  <!--            文件内容  -->
+                  <CheckboxGroup
+                    v-model="chooseFilesArray"
+                    @on-change="checkAllGroupChange"
                   >
-                    <vue-scroll :ops="ops" :style="{ height: contentHeight + 'px' }">
-                      <!--            folder 内容 -->
-                      <Card
-                        v-for="folder in currentFolder.folders"
-                        :key="folder.uid"
-                        :padding="5"
+                    <Card
+                      v-for="file in currentFolder.files"
+                      :key="file.uid"
+                      :padding="5"
+                      dis-hover
+                    >
+                      <Checkbox :label="file.address">&nbsp;</Checkbox>
+                      <Icon v-if="file.type === 'data'" type="ios-podium-outline" class="itemIcon" size="25"/>
+                      <Icon v-else-if="file.type === 'image'" type="ios-image-outline" class="itemIcon" size="25"/>
+                      <Icon v-else-if="file.type === 'paper'" type="ios-paper-outline" class="itemIcon" size="25"/>
+                      <Icon v-else-if="file.type === 'document'" type="ios-document-outline" class="itemIcon"
+                            size="25"/>
+                      <Icon v-else-if="file.type === 'model'" type="ios-construct-outline" class="itemIcon" size="25"/>
+                      <Icon v-else-if="file.type === 'video'" type="ios-videocam-outline" class="itemIcon" size="25"/>
+                      <Icon v-else type="ios-create-outline" class="itemIcon" size="25"/>
+                      <span
+                        @click="getFileInfo(file)"
+                        class="fileItemName"
+                        :title="file.name"
+                      >{{ file.name }}</span
                       >
-                        <div>
-                          <Icon type="ios-folder-open" class="itemIcon" size="25"/>
-                          <a
-                            @click="enterFolder(folder)"
-                            class="fileItemName"
-                            :title="folder.name"
-                          >{{ folder.name }}</a
-                          >
-
-                          <!--            -->
-                          <div style="float: right">
-                            <Button
-                              @click="renameFolderModalShow(folder)"
-                              class="fileBtnHoverBlue"
-                              shape="circle"
-                              icon="ios-create"
-                              title="Rename"
-                              size="small"
-                              type="text"
-                            ></Button>
-                            <Button
-                              @click="deleteFolder(folder)"
-                              class="fileBtnHoverRed"
-                              shape="circle"
-                              icon="ios-trash"
-                              title="Delete"
-                              size="small"
-                              style="margin-left: 5px"
-                              type="text"
-                            ></Button>
-                          </div>
-                        </div>
-                      </Card>
-
-                      <!--            文件内容  -->
-                      <CheckboxGroup
-                        v-model="chooseFilesArray"
-                        @on-change="checkAllGroupChange"
-                      >
-                        <Card
-                          v-for="file in currentFolder.files"
-                          :key="file.uid"
-                          :padding="5"
-                          dis-hover
-                        >
-                          <Checkbox :label="file.address">&nbsp;</Checkbox>
-                          <Icon v-if="file.type === 'data'" type="ios-podium-outline" class="itemIcon" size="25"/>
-                          <Icon v-else-if="file.type === 'image'" type="ios-image-outline" class="itemIcon" size="25"/>
-                          <Icon v-else-if="file.type === 'paper'" type="ios-paper-outline" class="itemIcon" size="25"/>
-                          <Icon v-else-if="file.type === 'document'" type="ios-document-outline" class="itemIcon" size="25"/>
-                          <Icon v-else-if="file.type === 'model'" type="ios-construct-outline" class="itemIcon" size="25"/>
-                          <Icon v-else-if="file.type === 'video'" type="ios-videocam-outline" class="itemIcon" size="25"/>
-                          <Icon v-else type="ios-create-outline" class="itemIcon" size="25"/>
-                          <span
-                            @click="getFileInfo(file)"
-                            class="fileItemName"
-                            :title="file.name"
-                          >{{ file.name }}</span
-                          >
-                          <span v-if="useFileItemSize" class="fileItemSize">{{file.fileSize | filterSizeType}}</span>
-                          <span v-if="useFileItemSize" style="width: 10%; margin-left: 10%">{{
+                      <span v-if="useFileItemSize" class="fileItemSize">{{file.fileSize | filterSizeType}}</span>
+                      <span v-if="useFileItemSize" style="width: 10%; margin-left: 10%">{{
                              file.uploadTime | filterTimeStyle
                           }}</span>
 
-                          <!--                使用资源-->
-                          <div style="float: right">
-                            <!--                  <Button-->
-                            <!--                    @click="filePreview(file)"-->
-                            <!--                    shape="circle"-->
-                            <!--                    icon="md-eye"-->
-                            <!--                    title="Preview"-->
-                            <!--                    size="small"-->
-                            <!--                    class="fileBtnHoverGreen"-->
-                            <!--                    type="text"-->
-                            <!--                  ></Button>-->
-                            <Button
-                              @click="fileDownload(file)"
-                              shape="circle"
-                              icon="ios-cloud-download"
-                              title="Download"
-                              size="small"
-                              class="fileBtnHoverGray"
-                              type="text"
-                            ></Button>
-                            <!--                  <Button-->
-                            <!--                    @click="showCopyFileModel(file)"-->
-                            <!--                    shape="circle"-->
-                            <!--                    icon="ios-share-alt"-->
-                            <!--                    title="Copy to personal center"-->
-                            <!--                    size="small"-->
-                            <!--                    class="fileBtnHoverOrange"-->
-                            <!--                    type="text"-->
-                            <!--                  ></Button>-->
+                      <!--                使用资源-->
+                      <div style="float: right">
+                        <!--                  <Button-->
+                        <!--                    @click="filePreview(file)"-->
+                        <!--                    shape="circle"-->
+                        <!--                    icon="md-eye"-->
+                        <!--                    title="Preview"-->
+                        <!--                    size="small"-->
+                        <!--                    class="fileBtnHoverGreen"-->
+                        <!--                    type="text"-->
+                        <!--                  ></Button>-->
+                        <a
+                          :href="resProxy + '/data/' + downResId">
+                          <Button
+                            @click="fileDownload(file)"
+                            shape="circle"
+                            icon="ios-cloud-download"
+                            title="Download"
+                            size="small"
+                            class="fileBtnHoverGray"
+                            type="text"
+                          ></Button>
+                        </a>
+                        <!--                  <Button-->
+                        <!--                    @click="showCopyFileModel(file)"-->
+                        <!--                    shape="circle"-->
+                        <!--                    icon="ios-share-alt"-->
+                        <!--                    title="Copy to personal center"-->
+                        <!--                    size="small"-->
+                        <!--                    class="fileBtnHoverOrange"-->
+                        <!--                    type="text"-->
+                        <!--                  ></Button>-->
 
-                            <!--                  管理资源-->
-                            <template>
-                              <Button
-                                @click="fileMoveModalShow(file)"
-                                shape="circle"
-                                icon="md-locate"
-                                title="File move"
-                                size="small"
-                                class="fileBtnHoverBlue"
-                                type="text"
-                              ></Button>
-                              <Button
-                                @click="fileEditModelShow(file)"
-                                shape="circle"
-                                icon="md-create"
-                                title="Edit info"
-                                size="small"
-                                class="fileBtnHoverBlue"
-                                type="text"
-                              ></Button>
-                              <Button
-                                @click="resDelete(file)"
-                                shape="circle"
-                                icon="ios-trash"
-                                title="Remove"
-                                size="small"
-                                class="fileBtnHoverRed"
-                                type="text"
-                              ></Button>
-                            </template>
-                          </div>
-                        </Card>
-                      </CheckboxGroup>
-                    </vue-scroll>
-                  </div>
-                  <div v-else style="text-align: center">
-                    <div style="color: lightgray; font-size: 2em; font-weight: bold">
-                      No file or folder
-                    </div>
-                  </div>
+                        <!--                  管理资源-->
+                        <template>
+                          <Button
+                            @click="fileMoveModalShow(file)"
+                            shape="circle"
+                            icon="md-locate"
+                            title="File move"
+                            size="small"
+                            class="fileBtnHoverBlue"
+                            type="text"
+                          ></Button>
+                          <Button
+                            @click="fileEditModelShow(file)"
+                            shape="circle"
+                            icon="md-create"
+                            title="Edit info"
+                            size="small"
+                            class="fileBtnHoverBlue"
+                            type="text"
+                          ></Button>
+                          <Button
+                            @click="resDelete(file)"
+                            shape="circle"
+                            icon="ios-trash"
+                            title="Remove"
+                            size="small"
+                            class="fileBtnHoverRed"
+                            type="text"
+                          ></Button>
+                        </template>
+                      </div>
+                    </Card>
+                  </CheckboxGroup>
+                </vue-scroll>
+              </div>
+              <div v-else style="text-align: center">
+                <div style="color: lightgray; font-size: 2em; font-weight: bold">
+                  No file or folder
                 </div>
-              </Card>
+              </div>
+            </div>
+          </Card>
 
         </div>
       </Col>
     </Row>
 
-              <!--    点击文件显示内容-->
-              <Modal v-model="fileInfoModal" title="File Info">
-                <Table
-                  :columns="selectedFileColumns"
-                  :data="selectedFileData"
-                  stripe
-                  border
-                  :show-header="false"
-                ></Table>
-                <div slot="footer">
-                  <Button type="primary" @click="fileInfoModal = false">OK</Button>
-                </div>
-              </Modal>
-              <!--    文件夹修改-->
-              <Modal
-                v-model="renameFolderModal"
-                title="Rename folder"
-                ok-text="Assure"
-                cancel-text="Cancel"
-              >
-                <Form
-                  ref="renameValidate"
-                  :model="renameValidate"
-                  :rules="renameRuleValidate"
-                  :label-width="80"
-                >
-                  <FormItem label="New name" prop="newName">
-                    <Input
-                      v-model="renameValidate.newName"
-                      :rows="4"
-                      placeholder="Enter the name for folder..."
-                    />
-                  </FormItem>
-                </Form>
-                <div slot="footer">
-                  <Button @click="renameFolderModal = false">Cancel</Button>
-                  <Button type="success" @click="renameFolder('renameValidate')"
-                  >Rename
-                  </Button
-                  >
-                </div>
-              </Modal>
-              <!--    新建文件夹 -->
-              <Modal v-model="newFolderModal" title="New folder">
-                <Form
-                  ref="newValidate"
-                  :model="newValidate"
-                  :rules="newRuleValidate"
-                  :label-width="80"
-                  @submit.native.prevent
-                >
-                  <FormItem label="Set name" prop="setName">
-                    <Input
-                      v-model="newValidate.setName"
-                      :rows="4"
-                      placeholder="Enter the name for folder..."
-                    />
-                  </FormItem>
-                </Form>
-                <div slot="footer">
-                  <Button @click="newFolderModal = false">Cancel</Button>
-                  <Button type="success" @click="createFolder('newValidate')">New</Button>
-                </div>
-              </Modal>
-              <!--    文件上传 modal -->
-              <Modal v-model="uploadModal" title="Upload file" width="600">
-                <Form
-                  ref="uploadValidate"
-                  :model="uploadValidate"
-                  :rules="uploadRuleValidate"
-                  :label-width="100"
-                  label-position="left"
-                >
-                  <FormItem label="Privacy" prop="privacy">
-                    <RadioGroup v-model="uploadValidate.privacy" style="width: 80%">
-                      <Radio label="private">Private</Radio>
-                      <Radio label="public">Public</Radio>
-                    </RadioGroup>
-                  </FormItem>
-                  <FormItem label="Type" prop="type">
-                    <RadioGroup v-model="uploadValidate.type">
-                      <Radio label="data"></Radio>
-                      <Radio label="paper"></Radio>
-                      <Radio label="document"></Radio>
-                      <Radio label="model"></Radio>
-                      <Radio label="image"></Radio>
-                      <Radio label="video"></Radio>
-                      <Radio label="others"></Radio>
-                    </RadioGroup>
-                  </FormItem>
-                  <FormItem label="Description" prop="description">
-                    <Input
-                      type="textarea"
-                      :rows="4"
-                      v-model="uploadValidate.description"
-                    />
-                  </FormItem>
-                </Form>
-                <Upload
-                  :max-size="1024 * 1024"
-                  multiple
-                  type="drag"
-                  :before-upload="gatherFile"
-                  action="-"
-                >
-                  <div style="padding: 20px 0">
-                    <Icon type="ios-cloud-upload" size="52" style="color: #3399ff"></Icon>
-                    <p>
-                      Click or drag files here to upload (The file size must control in
-                      <span style="color: red">1GB</span>)
-                    </p>
-                  </div>
-                </Upload>
-                <div style="padding: 0 10px 0 10px; max-height: 200px; overflow-y: auto">
-                  <ul v-for="(list, index) in toUploadFiles" :key="index">
-                    <li style="display: flex">
-                      File name:
-                      <span style="font-size: 10px; margin: 0 5px 0 5px"
-                      >{{ list.name }} ( {{ list.fileSize }} )</span
-                      >
-                      <Icon
-                        type="ios-close"
-                        size="20"
-                        @click="delFileList(index)"
-                        style="display: flex; justify-content: flex-end; cursor: pointer"
-                      ></Icon>
-                    </li>
-                  </ul>
-                </div>
-                <div slot="footer">
-                  <Button @click="uploadModal = false">Cancel</Button>
-                  <Button type="success" @click="fileUpload('uploadValidate')"
-                  >Upload
-                  </Button
-                  >
-                </div>
-              </Modal>
-              <!--    文件上传进度条-->
-              <Modal
-                v-model="progressModalShow"
-                title="Upload Progress"
-                :mask-closable="false"
-                :closable="false"
-              >
-                <Progress :percent="uploadProgress"></Progress>
-                <div slot="footer"></div>
-              </Modal>
-              <!--    文件修改-->
-              <Modal v-model="editFileModel" title="Edit file info" width="600">
-                <Form
-                  ref="editFileValidate"
-                  :model="editFileValidate"
-                  :rules="editFileRuleValidate"
-                  :label-width="80"
-                >
-                  <FormItem label="Privacy" prop="privacy">
-                    <RadioGroup v-model="editFileValidate.privacy">
-                      <Radio label="private">Private</Radio>
-                      <Radio label="public">Public</Radio>
-                    </RadioGroup>
-                  </FormItem>
+    <!--    点击文件显示内容-->
+    <Modal v-model="fileInfoModal" title="File Info">
+      <Table
+        :columns="selectedFileColumns"
+        :data="selectedFileData"
+        stripe
+        border
+        :show-header="false"
+      ></Table>
+      <div slot="footer">
+        <Button type="primary" @click="fileInfoModal = false">OK</Button>
+      </div>
+    </Modal>
+    <!--    文件夹修改-->
+    <Modal
+      v-model="renameFolderModal"
+      title="Rename folder"
+      ok-text="Assure"
+      cancel-text="Cancel"
+    >
+      <Form
+        ref="renameValidate"
+        :model="renameValidate"
+        :rules="renameRuleValidate"
+        :label-width="80"
+      >
+        <FormItem label="New name" prop="newName">
+          <Input
+            v-model="renameValidate.newName"
+            :rows="4"
+            placeholder="Enter the name for folder..."
+          />
+        </FormItem>
+      </Form>
+      <div slot="footer">
+        <Button @click="renameFolderModal = false">Cancel</Button>
+        <Button type="success" @click="renameFolder('renameValidate')"
+        >Rename
+        </Button
+        >
+      </div>
+    </Modal>
+    <!--    新建文件夹 -->
+    <Modal v-model="newFolderModal" title="New folder">
+      <Form
+        ref="newValidate"
+        :model="newValidate"
+        :rules="newRuleValidate"
+        :label-width="80"
+        @submit.native.prevent
+      >
+        <FormItem label="Set name" prop="setName">
+          <Input
+            v-model="newValidate.setName"
+            :rows="4"
+            placeholder="Enter the name for folder..."
+          />
+        </FormItem>
+      </Form>
+      <div slot="footer">
+        <Button @click="newFolderModal = false">Cancel</Button>
+        <Button type="success" @click="createFolder('newValidate')">New</Button>
+      </div>
+    </Modal>
+    <!--    文件上传 modal -->
+    <Modal v-model="uploadModal" title="Upload file" width="600">
+      <Form
+        ref="uploadValidate"
+        :model="uploadValidate"
+        :rules="uploadRuleValidate"
+        :label-width="100"
+        label-position="left"
+      >
+        <FormItem label="Privacy" prop="privacy">
+          <RadioGroup v-model="uploadValidate.privacy" style="width: 80%">
+            <Radio label="private">Private</Radio>
+            <Radio label="public">Public</Radio>
+          </RadioGroup>
+        </FormItem>
+        <FormItem label="Type" prop="type">
+          <RadioGroup v-model="uploadValidate.type">
+            <Radio label="data"></Radio>
+            <Radio label="paper"></Radio>
+            <Radio label="document"></Radio>
+            <Radio label="model"></Radio>
+            <Radio label="image"></Radio>
+            <Radio label="video"></Radio>
+            <Radio label="others"></Radio>
+          </RadioGroup>
+        </FormItem>
+        <FormItem label="Description" prop="description">
+          <Input
+            type="textarea"
+            :rows="4"
+            v-model="uploadValidate.description"
+          />
+        </FormItem>
+      </Form>
+      <Upload
+        :max-size="1024 * 1024"
+        multiple
+        type="drag"
+        :before-upload="gatherFile"
+        action="-"
+      >
+        <div style="padding: 20px 0">
+          <Icon type="ios-cloud-upload" size="52" style="color: #3399ff"></Icon>
+          <p>
+            Click or drag files here to upload (The file size must control in
+            <span style="color: red">1GB</span>)
+          </p>
+        </div>
+      </Upload>
+      <div style="padding: 0 10px 0 10px; max-height: 200px; overflow-y: auto">
+        <ul v-for="(list, index) in toUploadFiles" :key="index">
+          <li style="display: flex">
+            File name:
+            <span style="font-size: 10px; margin: 0 5px 0 5px"
+            >{{ list.name }} ( {{ list.fileSize }} )</span
+            >
+            <Icon
+              type="ios-close"
+              size="20"
+              @click="delFileList(index)"
+              style="display: flex; justify-content: flex-end; cursor: pointer"
+            ></Icon>
+          </li>
+        </ul>
+      </div>
+      <div slot="footer">
+        <Button @click="uploadModal = false">Cancel</Button>
+        <Button type="success" @click="fileUpload('uploadValidate')"
+        >Upload
+        </Button
+        >
+      </div>
+    </Modal>
+    <!--    文件上传进度条-->
+    <Modal
+      v-model="progressModalShow"
+      title="Upload Progress"
+      :mask-closable="false"
+      :closable="false"
+    >
+      <Progress :percent="uploadProgress"></Progress>
+      <div slot="footer"></div>
+    </Modal>
+    <!--    文件修改-->
+    <Modal v-model="editFileModel" title="Edit file info" width="600">
+      <Form
+        ref="editFileValidate"
+        :model="editFileValidate"
+        :rules="editFileRuleValidate"
+        :label-width="80"
+      >
+        <FormItem label="Privacy" prop="privacy">
+          <RadioGroup v-model="editFileValidate.privacy">
+            <Radio label="private">Private</Radio>
+            <Radio label="public">Public</Radio>
+          </RadioGroup>
+        </FormItem>
 
-                  <FormItem label="Type" prop="type">
-                    <RadioGroup v-model="editFileValidate.type">
-                      <Radio label="data"></Radio>
-                      <Radio label="paper"></Radio>
-                      <Radio label="document"></Radio>
-                      <Radio label="model"></Radio>
-                      <Radio label="image"></Radio>
-                      <Radio label="video"></Radio>
-                      <Radio label="others"></Radio>
-                    </RadioGroup>
-                  </FormItem>
-                  <FormItem label="Name" prop="name">
-                    <Input
-                      v-model="editFileValidate.name"
-                      :rows="4"
-                      placeholder="Enter the name for file..."
-                    />
-                  </FormItem>
-                  <FormItem label="Description" prop="description">
-                    <Input
-                      type="textarea"
-                      :rows="4"
-                      v-model="editFileValidate.description"
-                    />
-                  </FormItem>
-                </Form>
-                <div slot="footer">
-                  <Button @click="editFileModel = false">Cancel</Button>
-                  <Button type="success" @click="editFileInfo('editFileValidate')"
-                  >Submit
-                  </Button
-                  >
-                </div>
-              </Modal>
-              <!--    点击文件移动-->
-              <Modal v-model="fileMoveModal" title="File Move" >
-                <Card style="height:300px;" dis-hover>
-                  <vue-scroll :ops="scrollOps" style=" height: 270px;">
-                    <Tree :data="folderTree" :render="renderStyle" style="width:400px"></Tree>
-                  </vue-scroll>
-                </Card>
-                
-                <div slot="footer">
-                  <Button type="warning" icon="md-add" style="float:left;" @click="addNewFolderModalShow()">Add new folder</Button>
-                  <Button  @click="fileMoveModalClose()">Cancel</Button>
-                  <Button type="primary" @click="fileMove()">Move</Button>
-                </div>
-              </Modal>
-              <Modal v-model="addNewFolderModal" title="New folder">
-                <Form
-                  ref="newValidate"
-                  :model="newValidate"
-                  :rules="newRuleValidate"
-                  :label-width="80"
-                  @submit.native.prevent
-                >
-                  <FormItem label="Set name" prop="setName">
-                    <Input
-                      v-model="newValidate.setName"
-                      :rows="4"
-                      placeholder="Enter the name for folder..."
-                    />
-                  </FormItem>
-                </Form>
-                <div slot="footer">
-                  <Button @click="newFolderModal = false">Cancel</Button>
-                  <Button type="success" @click="createNewFolder('newValidate')">New</Button>
-                </div>
-              </Modal>
-          <!--    <Modal v-model="shareModal" width="800" title="Share Project">-->
-          <!--      <Form>-->
-          <!--        <FormItem>-->
-          <!--          <div>Share "{{selectedResName}}" to Project</div>-->
-          <!--          &lt;!&ndash;          <Select v-model="shareResFormItems.select">&ndash;&gt;-->
-          <!--          &lt;!&ndash;            <Option value="selectProject">Share "{{selectedResName}}" to Project</Option>&ndash;&gt;-->
-          <!--          &lt;!&ndash;            <Option value="selectUser">Share "{{selectedResName}}" to User</Option>&ndash;&gt;-->
-          <!--          &lt;!&ndash;          </Select>&ndash;&gt;-->
-          <!--        </FormItem>-->
-          <!--        <FormItem v-if="shareResFormItems.select == 'selectProject'">-->
-          <!--          <Select v-model="shareResFormItems.sharedProjectId" placeholder="Select Project">-->
-          <!--            <Option v-for="item in userProject" :value="item.aid" :key="item.aid">{{ item.name }}</Option>-->
-          <!--          </Select>-->
-          <!--        </FormItem>-->
-          <!--        <FormItem v-if="shareResFormItems.select == 'selectUser'">-->
-          <!--          <Input v-model="shareResFormItems.sharedUserEmail" placeholder="Enter email address"></Input>-->
-          <!--        </FormItem>-->
-          <!--      </Form>-->
-          <!--      <div slot="footer">-->
-          <!--        <Button type="warning" @click="shareModal = false">Cancel</Button>-->
-          <!--        <Button type="success" @click="shareResources">Share</Button>-->
-          <!--      </div>-->
-          <!--    </Modal>-->
+        <FormItem label="Type" prop="type">
+          <RadioGroup v-model="editFileValidate.type">
+            <Radio label="data"></Radio>
+            <Radio label="paper"></Radio>
+            <Radio label="document"></Radio>
+            <Radio label="model"></Radio>
+            <Radio label="image"></Radio>
+            <Radio label="video"></Radio>
+            <Radio label="others"></Radio>
+          </RadioGroup>
+        </FormItem>
+        <FormItem label="Name" prop="name">
+          <Input
+            v-model="editFileValidate.name"
+            :rows="4"
+            placeholder="Enter the name for file..."
+          />
+        </FormItem>
+        <FormItem label="Description" prop="description">
+          <Input
+            type="textarea"
+            :rows="4"
+            v-model="editFileValidate.description"
+          />
+        </FormItem>
+      </Form>
+      <div slot="footer">
+        <Button @click="editFileModel = false">Cancel</Button>
+        <Button type="success" @click="editFileInfo('editFileValidate')"
+        >Submit
+        </Button
+        >
+      </div>
+    </Modal>
+    <!--    点击文件移动-->
+    <Modal v-model="fileMoveModal" title="File Move">
+      <Card style="height:300px;" dis-hover>
+        <vue-scroll :ops="scrollOps" style=" height: 270px;">
+          <Tree :data="folderTree" :render="renderStyle" style="width:400px"></Tree>
+        </vue-scroll>
+      </Card>
+
+      <div slot="footer">
+        <Button type="warning" icon="md-add" style="float:left;" @click="addNewFolderModalShow()">Add new folder
+        </Button>
+        <Button @click="fileMoveModalClose()">Cancel</Button>
+        <Button type="primary" @click="fileMove()">Move</Button>
+      </div>
+    </Modal>
+    <Modal v-model="addNewFolderModal" title="New folder">
+      <Form
+        ref="newValidate"
+        :model="newValidate"
+        :rules="newRuleValidate"
+        :label-width="80"
+        @submit.native.prevent
+      >
+        <FormItem label="Set name" prop="setName">
+          <Input
+            v-model="newValidate.setName"
+            :rows="4"
+            placeholder="Enter the name for folder..."
+          />
+        </FormItem>
+      </Form>
+      <div slot="footer">
+        <Button @click="newFolderModal = false">Cancel</Button>
+        <Button type="success" @click="createNewFolder('newValidate')">New</Button>
+      </div>
+    </Modal>
+    <!--    <Modal v-model="shareModal" width="800" title="Share Project">-->
+    <!--      <Form>-->
+    <!--        <FormItem>-->
+    <!--          <div>Share "{{selectedResName}}" to Project</div>-->
+    <!--          &lt;!&ndash;          <Select v-model="shareResFormItems.select">&ndash;&gt;-->
+    <!--          &lt;!&ndash;            <Option value="selectProject">Share "{{selectedResName}}" to Project</Option>&ndash;&gt;-->
+    <!--          &lt;!&ndash;            <Option value="selectUser">Share "{{selectedResName}}" to User</Option>&ndash;&gt;-->
+    <!--          &lt;!&ndash;          </Select>&ndash;&gt;-->
+    <!--        </FormItem>-->
+    <!--        <FormItem v-if="shareResFormItems.select == 'selectProject'">-->
+    <!--          <Select v-model="shareResFormItems.sharedProjectId" placeholder="Select Project">-->
+    <!--            <Option v-for="item in userProject" :value="item.aid" :key="item.aid">{{ item.name }}</Option>-->
+    <!--          </Select>-->
+    <!--        </FormItem>-->
+    <!--        <FormItem v-if="shareResFormItems.select == 'selectUser'">-->
+    <!--          <Input v-model="shareResFormItems.sharedUserEmail" placeholder="Enter email address"></Input>-->
+    <!--        </FormItem>-->
+    <!--      </Form>-->
+    <!--      <div slot="footer">-->
+    <!--        <Button type="warning" @click="shareModal = false">Cancel</Button>-->
+    <!--        <Button type="success" @click="shareResources">Share</Button>-->
+    <!--      </div>-->
+    <!--    </Modal>-->
     <!-- </Card> -->
   </div>
 </template>
@@ -678,6 +685,9 @@
         switchIndex: 0,
         //shareRes相关
         shareModal: false,
+        resProxy: this.$store.getters.resProxy,
+        downResId: "",
+        downResIds: ""
       }
     },
     methods: {
@@ -708,11 +718,11 @@
           .then(res => {
             if (res.data == "Offline") {
               this.$store.commit("userLogout");
-              this.$router.push({ name: "Login" });
+              this.$router.push({name: "Login"});
             } else if (res.data.code == 0) {
               let rootRes = res.data.data;
               this.resToCurrentFolder(rootRes);
-              this.updataFolderTree(rootRes,"init");
+              this.updataFolderTree(rootRes, "init");
             }
           })
           .catch()
@@ -729,44 +739,44 @@
           }
         }
       },
-      updataFolderTree(rootRes,options){
-        if(options == "init"){
-          
-            let allFolder = {
-              name: "All Folder",
-              folder: true,
-              uid: '0',
-              children: [],
-              path: ['0'],
-              level: 0,
-              expand: true,
-            };
-            if(this.folderTree.length == 0){
-              this.folderTree.push(allFolder);
-            }
-            let folderTreeTemp = rootRes;
-            //递归清理其中不是文件夹的child
-            this.recursiveTree(folderTreeTemp);
-            this.folderTree[0].children = folderTreeTemp;
-          
-          
-        } else if (options == "add"){
+      updataFolderTree(rootRes, options) {
+        if (options == "init") {
+
+          let allFolder = {
+            name: "All Folder",
+            folder: true,
+            uid: '0',
+            children: [],
+            path: ['0'],
+            level: 0,
+            expand: true,
+          };
+          if (this.folderTree.length == 0) {
+            this.folderTree.push(allFolder);
+          }
+          let folderTreeTemp = rootRes;
+          //递归清理其中不是文件夹的child
+          this.recursiveTree(folderTreeTemp);
+          this.folderTree[0].children = folderTreeTemp;
+
+
+        } else if (options == "add") {
           //待补充
         }
       },
-      recursiveTree(tree){
-        for( let i = 0 ; i < tree.length ; i++ ){
-          if(tree[i].folder == false){
-            tree.splice(i,1);
+      recursiveTree(tree) {
+        for (let i = 0; i < tree.length; i++) {
+          if (tree[i].folder == false) {
+            tree.splice(i, 1);
             i--;
           } else {
-            if(tree[i].children.length > 0){
+            if (tree[i].children.length > 0) {
               this.recursiveTree(tree[i].children);
             }
           }
         }
       },
-      renderStyle(h, { root, node, data }) {
+      renderStyle(h, {root, node, data}) {
         let props = {};
         let style = {};
         let on = {};
@@ -787,43 +797,43 @@
           };
         }
         return h('span', {
-            style: {
-              display: 'inline-block',
-              width: '100%'
-            },
-            
-          }, [
-            h('span', [
-              h(
-                "Button",
-                {
-                  props: props,
-                  style: style,
-                  on: on,
-                  attrs: { title: name },
-                },[
-                  h('Icon', {
-                    props: {
-                      type: 'ios-folder-open'
-                    },
+          style: {
+            display: 'inline-block',
+            width: '100%'
+          },
+
+        }, [
+          h('span', [
+            h(
+              "Button",
+              {
+                props: props,
+                style: style,
+                on: on,
+                attrs: {title: name},
+              }, [
+                h('Icon', {
+                  props: {
+                    type: 'ios-folder-open'
+                  },
+                  style: {
+                    marginRight: '8px',
+                  }
+                }),
+                h("span",
+                  {
                     style: {
-                      marginRight: '8px',
-                    }
-                  }),
-                  h("span",
-                    {
-                      style: {
-                        overflow: "hidden",
-                        maxWidth: "120px",
-                        textOverflow: "ellipsis",
-                        fontSize: "15px",
-                      },
+                      overflow: "hidden",
+                      maxWidth: "120px",
+                      textOverflow: "ellipsis",
+                      fontSize: "15px",
                     },
-                    name
-                  )
-                ])
-            ]),
-        ]); 
+                  },
+                  name
+                )
+              ])
+          ]),
+        ]);
       },
       handleCheckAll() {
         if (this.indeterminate) {
@@ -927,7 +937,7 @@
           .then(res => {
             if (res.data == "Offline") {
               this.$store.commit("userLogout");
-              this.$router.push({ name: "Login" });
+              this.$router.push({name: "Login"});
             } else if (res.data.code == 0) {
               let folderInfo = res.data.data;
               this.resToCurrentFolder(folderInfo);
@@ -993,7 +1003,7 @@
               .then(res => {
                 if (res.data == "Offline") {
                   this.$store.commit("userLogout");
-                  this.$router.push({ name: "Login" });
+                  this.$router.push({name: "Login"});
                 } else if (res.data.code == 0) {
                   this.currentFolder.folders.push(res.data.data);
                   // this.updataFolderTree(res.data.data,this.pathStr,"add");
@@ -1020,7 +1030,7 @@
             .then(res => {
               if (res.data == "Offline") {
                 this.$store.commit("userLogout");
-                this.$router.push({ name: "Login" });
+                this.$router.push({name: "Login"});
               } else if (res.data.code == 0) {
                 //删除用于显示的数据中对应的内容
                 for (let i = 0; i < this.currentFolder.folders.length; i++) {
@@ -1063,7 +1073,7 @@
               .then(res => {
                 if (res.data == "Offline") {
                   this.$store.commit("userLogout");
-                  this.$router.push({ name: "Login" });
+                  this.$router.push({name: "Login"});
                 } else if (res.data.code == "0") {
                   //更新成功，替换用于显示的数据 item
                   let newFolder = {
@@ -1155,9 +1165,9 @@
                 },
                 data: formData
               }).then(res => {
-                if (res.data == "Offline"){
+                if (res.data == "Offline") {
                   this.$store.commit("userLogout");
-                  this.$router.push({ name: "Login" });
+                  this.$router.push({name: "Login"});
                 } else if (res.data != "Fail" && res.data != "Offline") {
                   let uploadedList = res.data.uploaded;
                   let failedList = res.data.failed;
@@ -1185,9 +1195,11 @@
                   this.uploadProgress = 0;
                 } else {
                   this.$Message.warning("Upload fail.");
+                  this.progressModalShow = false;
                 }
               }).catch(err => {
                 this.$Message.warning("Upload fail.");
+                this.progressModalShow = false;
               })
             }
           }
@@ -1216,7 +1228,7 @@
             .then(res => {
               if (res.data == "Offline") {
                 this.$store.commit("userLogout");
-                this.$router.push({ name: "Login" });
+                this.$router.push({name: "Login"});
               } else if (res.data.code == "0") {
                 for (let i = 0; i < this.currentFolder.files.length; i++) {
                   if (this.currentFolder.files[i].uid == fileId) {
@@ -1234,25 +1246,40 @@
         }
       },
       fileDownload: function (fileInfo) {
-        window.open(fileInfo.address);
+        let address = fileInfo.address;
+        if (address != "" && typeof (address) == "string") {
+          if (address.length == 34) {
+            this.downResId = address;
+          } else {
+            let uidArr = address.split("data/");
+            if (uidArr instanceof Array && uidArr.length > 1) {
+              this.downResId = uidArr[1];
+            }
+          }
+        }
       },
       download: function (blobUrl) {
         const a = document.createElement("a");
         a.style.display = "none";
         a.download = "package.zip";
-        a.href = blobUrl;
+        a.href = this.resProxy + "/batchData?oids=" + blobUrl;
         a.click();
         a.remove();
       },
       downloadSelectFile: function () {
         let chooseFileUrls = this.chooseFilesArray;
-        console.log(this.chooseFilesArray)
         let temp = [];
         if (chooseFileUrls.length != 0) {
           for (let i = 0; i < chooseFileUrls.length; i++) {
-            temp.push(chooseFileUrls[i].split("/data/")[1]);
+            for (let i = 0; i < chooseFileUrls.length; i++) {
+              if (chooseFileUrls[i].length == 34) {
+                temp.push(chooseFileUrls[i]);
+              } else {
+                temp.push(chooseFileUrls[i].split("/data/")[1]);
+              }
+            }
+            this.download(temp.toString());
           }
-          window.open(`http://${this.$store.state.DataServer}/batchData?oids=` + temp.toString())
         }
         // if (chooseFileUrls != "") {
         //   this.$Spin.show();
@@ -1275,13 +1302,13 @@
         //   });
         // }
       },
-      fileMoveModalShow(fileInfo){
+      fileMoveModalShow(fileInfo) {
         this.slctFolder = {};
         this.slctFile = {};
         this.fileMoveModal = true;
         this.slctFile = fileInfo;
       },
-      fileMoveModalClose(){
+      fileMoveModalClose() {
         this.fileMoveModal = false;
         this.slctFolder = {};
         this.slctFile = {};
@@ -1311,7 +1338,7 @@
               .then(res => {
                 if (res.data == "Offline") {
                   this.$store.commit("userLogout");
-                  this.$router.push({ name: "Login" });
+                  this.$router.push({name: "Login"});
                 } else if (res.data.code == 0) {
                   this.putFileInfo.name = this.editFileValidate.name;
                   this.putFileInfo.privacy = this.editFileValidate.privacy;
@@ -1335,11 +1362,11 @@
           }
         })
       },
-      fileMove(){
+      fileMove() {
         //fileInfo
         let moveFile = this.slctFile;
         //oldPath
-        let oldPath = ""; 
+        let oldPath = "";
         let foldersPath = this.folderIdStack;
         if (foldersPath.length == 0) {
           foldersPath = ["0"];
@@ -1348,65 +1375,65 @@
         oldPath = this.pathStr;
         //newPath
         let newPath = [];
-        if(this.slctFolder.folder != true){
+        if (this.slctFolder.folder != true) {
           this.$Message.warning("Please select a folder directory.");
         } else {
-          this.findFolderPath(this.slctFolder,newPath);
+          this.findFolderPath(this.slctFolder, newPath);
           this.reversePathToStr(newPath);
         }
         this.axios
-              .put("/GeoProblemSolving/res/file/" + this.pathStr + '/' + oldPath, moveFile)
-              .then(res => {
-                if (res.data == "Offline") {
-                  this.$store.commit("userLogout");
-                  this.$router.push({ name: "Login" });
-                } else if (res.data.code == 0) {
-                  this.$Notice.info({ title: "File move", desc: "Success!" });
-                  this.folderStack = [{uid: 0, name: "Home"}];
-                  this.folderIdStack = [];
-                  this.resToCurrentFolder(res.data.data);
-                  this.fileMoveModalClose();
-                } else {
-                  this.$Message.warning("Move fail.");
-                }
-              })
-              .catch(err => {
-                this.$Message.warning("Move fail.");
-              })
+          .put("/GeoProblemSolving/res/file/" + this.pathStr + '/' + oldPath, moveFile)
+          .then(res => {
+            if (res.data == "Offline") {
+              this.$store.commit("userLogout");
+              this.$router.push({name: "Login"});
+            } else if (res.data.code == 0) {
+              this.$Notice.info({title: "File move", desc: "Success!"});
+              this.folderStack = [{uid: 0, name: "Home"}];
+              this.folderIdStack = [];
+              this.resToCurrentFolder(res.data.data);
+              this.fileMoveModalClose();
+            } else {
+              this.$Message.warning("Move fail.");
+            }
+          })
+          .catch(err => {
+            this.$Message.warning("Move fail.");
+          })
       },
-      findFolderPath(slctFolder,path){
-        let tree =  this.folderTree[0].children;
+      findFolderPath(slctFolder, path) {
+        let tree = this.folderTree[0].children;
         let folder = slctFolder;
-        if(slctFolder.uid != "0"){
+        if (slctFolder.uid != "0") {
           path.push(slctFolder.uid);
-          while(folder.parent != "0"){
+          while (folder.parent != "0") {
             path.push(folder.parent);
-            this.getFolderByUid(tree,folder.parent);
+            this.getFolderByUid(tree, folder.parent);
             folder = this.folderInfo;
           }
         } else {
           path.push(slctFolder.uid);
         }
-        
+
       },
-      getFolderByUid(tree,uid){
-        for(let i =0 ; i < tree.length ; i++){
-          if(tree[i].uid == uid){
+      getFolderByUid(tree, uid) {
+        for (let i = 0; i < tree.length; i++) {
+          if (tree[i].uid == uid) {
             this.folderInfo = tree[i];
           }
-          if(tree[i].children.length > 0){
-            this.getFolderByUid(tree[i].children,uid);
+          if (tree[i].children.length > 0) {
+            this.getFolderByUid(tree[i].children, uid);
           }
         }
       },
       addNewFolderModalShow: function () {
         this.newValidate.setName = "";
-        if(this.slctFolder.folder != true){
+        if (this.slctFolder.folder != true) {
           this.$Message.warning("Please select a folder directory.");
         } else {
           this.addNewFolderModal = true;
         }
-        
+
       },
       createNewFolder: function (name) {
         this.$refs[name].validate(valid => {
@@ -1415,14 +1442,14 @@
               name: this.newValidate.setName
             };
             let newPath = [];
-            this.findFolderPath(this.slctFolder,newPath);
+            this.findFolderPath(this.slctFolder, newPath);
             this.reversePathToStr(newPath);
             this.axios
               .post("/GeoProblemSolving/res/folder/" + this.pathStr, folderObj)
               .then(res => {
                 if (res.data == "Offline") {
                   this.$store.commit("userLogout");
-                  this.$router.push({ name: "Login" });
+                  this.$router.push({name: "Login"});
                 } else if (res.data.code == 0) {
                   this.getResList();
                   // this.updataFolderTree(res.data.data,"add");
@@ -1450,23 +1477,23 @@
       window.removeEventListener("resize", this.reSize);
     },
     filters: {
-      filterSizeType(value){
-        if(value === 0) return "0 B";
+      filterSizeType(value) {
+        if (value === 0) return "0 B";
         let k = 1024;
-        let sizes = ["B","KB","MB","GB"];
+        let sizes = ["B", "KB", "MB", "GB"];
         let i = Math.floor(Math.log(value) / Math.log(k));
-        return (value / Math.pow(k,i)).toPrecision(3) + " " + sizes[i];
+        return (value / Math.pow(k, i)).toPrecision(3) + " " + sizes[i];
       },
-      filterTimeStyle(str){
+      filterTimeStyle(str) {
         let result = str.split('.')[0];
-        return result.replace('T'," ");
+        return result.replace('T', " ");
       }
     },
   }
 </script>
 
 <style scoped>
-  .customCard{
+  .customCard {
     opacity: 0.95;
   }
 
@@ -1477,21 +1504,24 @@
     margin: 5px;
     cursor: pointer;
   }
+
   .res-content-image {
     margin-left: 10px;
   }
-  .res-content-text{
-    width:60px; 
+
+  .res-content-text {
+    width: 60px;
     text-overflow: ellipsis;
-    white-space: nowrap; 
+    white-space: nowrap;
     overflow: hidden;
     text-align: center;
-    
+
   }
 
-  .fileSpace{
+  .fileSpace {
     padding: 0 20px;
   }
+
   .folderContent {
     overflow-y: auto;
     padding: 5px;

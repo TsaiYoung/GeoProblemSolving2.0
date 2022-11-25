@@ -25,7 +25,7 @@
             <div slot="title" class="resourceTitle"></div>
             <div slot="extra" class="resourceBtnDiv">
                 <Tooltip content="Download all selected" placement="bottom">
-                    <Button 
+                    <Button
                     class="fileBtnHoverGray"
                     @click="downloadFiles">
                     <Icon size="20" type="md-cloud-download"></Icon>
@@ -38,7 +38,7 @@
                     <template slot-scope="{ row }" slot="name">
                     <strong>{{ row.name }}</strong>
                     </template>
-                    <template slot-scope="{ row, index }" slot="action">
+                    <template slot-scope="{  index }" slot="action">
                     <Button
                         class="fileBtnHoverGreen"
                         size="small"

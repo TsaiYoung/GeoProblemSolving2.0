@@ -27,6 +27,19 @@
 .ivu-table th {
   height: 40px !important;
 }
+.demo-spin-icon-load{
+    animation: ani-demo-spin 1s linear infinite;
+}
+@keyframes ani-demo-spin {
+    from { transform: rotate(0deg);}
+    50%  { transform: rotate(180deg);}
+    to   { transform: rotate(360deg);}
+}
+.demo-spin-col{
+    height: 100px;
+    position: relative;
+    border: 1px solid #eee;
+}
 </style>
 <!--Resources中心-->
 <template>
@@ -71,15 +84,9 @@
             <Row style="height:100%; overflow-y:auto">
               <template v-if="$store.getters.userState">
                 <Col span="22" offset="1">
-                  <Table :columns="resourceColumn" :data="showList" border no-data-text="No data">
-                    <template slot-scope="{ row, index }" slot="action" v-show="showList.length>0">
-                      <a
-                        :href="showList[index].address"
-                        :download="showList[index].name"
-                        title="Download"
-                      >
-                        <Icon type="md-download" :size="20" color="yellowgreen" />
-                      </a>
+                  <Table :columns="resourceColumn" :data="showList" border no-data-text="No data" v-show="showList.length>0">
+                    <template slot-scope="{ index }" slot="action">
+                        <Icon type="md-download" :size="20" color="yellowgreen" @click="downFile(showList[index].address)"/>
                       <a @click="show(index)" style="margin-left: 10px" title="Preview">
                         <Icon type="md-eye" :size="20" color="orange" />
                       </a>
@@ -89,8 +96,8 @@
               </template>
               <template v-else>
                 <Col span="22" offset="1">
-                  <Table :columns="resourceColumn" :data="showList" border size="small" no-data-text="No data">
-                    <template slot-scope="{ row, index }" slot="action" v-show="showList.length>0">
+                  <Table :columns="resourceColumn" :data="showList" border size="small" no-data-text="No data"  v-show="showList.length>0">
+                    <template slot-scope="{}" slot="action">
                       <a title="Please download after login">
                         <Icon type="md-download" :size="20" color="gray" />
                       </a>
@@ -111,7 +118,7 @@
               show-total
               @on-change="changepage"
               show-elevator
-              style="position: absolute;"
+              style="position: absolute; bottom:20px;"
             />
           </div>
         </div>
@@ -158,7 +165,7 @@ export default {
       resourceColumn: [
         {
           type: "index",
-          maxWidth: 50,
+          maxWidth: 60,
           align: "center"
         },
         {
@@ -209,8 +216,9 @@ export default {
       allResourceList: [],
       allSelectedList: [],
       showList: [],
+      resourceData:[],
       dataCount: 0,
-      pageSize: 8,
+      pageSize: 12,
       currentPage: 1,
       // 上传文件的模态框
       uploadModal: false,
@@ -218,7 +226,9 @@ export default {
       fileDescription: "",
       fileType: "data",
       contentHeight: "",
-      panel: null
+      panel: null,
+      resAddress: "",
+      resProxy: this.$store.getters.resProxy,
     };
   },
   mounted() {
@@ -241,9 +251,12 @@ export default {
         if (res.data.code == 0){
           let tempResourceList = res.data.data;
           tempResourceList.reverse();
+          let that = this;
           tempResourceList.forEach(function(list) {
-            var time = list.uploadTime;
-            list.uploadTime = time;
+            let time = list.uploadTime;
+            let size = list.fileSize;
+            list.fileSize = that.filterSizeType(size);
+            list.uploadTime = that.filterTimeStyle(time);
           });
           this.$set(this, "allResourceList", tempResourceList);
           this.dataCount = tempResourceList.length;
@@ -284,70 +297,48 @@ export default {
       var _end = index * this.pageSize;
       this.showList = this.allSelectedList.slice(_start, _end);
     },
+    downFile(address){
+      const a = document.createElement("a");
+      a.style.display = "none";
+      a.target = "_self";
+      if (address.indexOf("/resource/") > 0){
+        a.href = address;
+      }else{
+        if (typeof(address) == "string"){
+          a.href = this.resProxy + "/data/" + address.slice(-36);
+        }
+      }
+      a.click();
+      a.remove();
+    },
     show(index) {
       var res = this.showList[index];
-      let name = this.showList[index].name;
-      if (/\.(doc|docx|xls|xlsx|ppt|pptx)$/.test(name.toLowerCase())) {
-        this.$Modal.confirm({
-          title: "Note",
-          content:
-            "<p>You selected file will be previewed through</p><p style='font-size:16px;font-weight:bold'>Microsoft office online service</p>",
-          onOk: () => {
-            if (this.panel != null) {
-              this.panel.close();
-            }
-            var url =
-              "http://view.officeapps.live.com/op/view.aspx?src=" +
-              "http://" +
-              this.$store.state.DataServer +
-              res.address;
-            var toolURL =
-              "<iframe src=" +
-              url +
-              ' style="width: 100%;height:100%" frameborder="0"></iframe>';
-            this.panel = jsPanel.create({
-              headerControls: {
-                smallify: "remove"
-              },
-              theme: "primary",
-              footerToolbar: '<p style="height:5px"></p>',
-              headerTitle: "Preview",
-              contentSize: "800 600",
-              content: toolURL,
-              disableOnMaximized: true,
-              dragit: {
-                containment: 5
-              },
-              closeOnEscape: true,
-              // callback: function() {
-              //   var that = this;
-              //   demoPanelTimer = window.setInterval(function() {
-              //     that.style.zIndex = "9999";
-              //   }, 1);
-              // }
-            });
-            $(".jsPanel-content").css("font-size", "0");
-          },
-          onCancel: () => {
-            return;
-          }
-        });
-      } else if (/\.(mp4)$/.test(name.toLowerCase())) {
+      let name = this.showList[index].suffix;
+      if (/(doc|docx|xls|xlsx|ppt|pptx|xml|json|md|gif|jpg|png|jpeg|pdf|csv)$/.test(name.toLowerCase())) {
         if (this.panel != null) {
           this.panel.close();
         }
-        var url =
-          "http://" + this.$store.state.DataServer + this.showList[index].address;
+        let url = "";
+        if(res.address.indexOf("http://221.226.60.2:8082") != -1){
+          url = this.$store.getters.resProxy + this.showList[index].address.split("http://221.226.60.2:8082")[1];
+        } else if(res.address.indexOf("/GeoProblemSolving/resource") != -1){
+          url = this.$store.getters.resProxy + res.address;
+        } else {
+          url = this.$store.getters.resProxy + this.showList[index].address;
+        }
+        let Base64 = require('js-base64').Base64;
+        let finalUrl = "https://geomodeling.njnu.edu.cn/dataTransferServer/onlinePreview?url=" + encodeURIComponent(Base64.encode(url)); //Base64.encode(url)
+        // let finalUrl = "http://221.226.60.2:8082/onlinePreview?url=" + Base64.encode(url);  // http：
         var toolURL =
-          "<video src=" +
-          url +
-          ' style="width: 100%;height:100%" controls></video>';
+          "<iframe src=" +
+          finalUrl +
+          ' style="width: 100%;height:100%" frameborder="0"></iframe>';
         this.panel = jsPanel.create({
           headerControls: {
             smallify: "remove"
           },
           theme: "primary",
-          footerToolbar: '<p style="height:10px"></p>',
+          footerToolbar: '<p style="height:5px"></p>',
           headerTitle: "Preview",
           contentSize: "800 600",
           content: toolURL,
@@ -355,19 +346,19 @@ export default {
           dragit: {
             containment: 5
           },
-          closeOnEscape: true
+          closeOnEscape: true,
         });
         $(".jsPanel-content").css("font-size", "0");
-      } else if (/\.(pdf|xml|json|md|gif|jpg|png)$/.test(name.toLowerCase())) {
+
+      } else if (/(mp4)$/.test(name.toLowerCase())) {
         if (this.panel != null) {
           this.panel.close();
         }
-        var url =
-          "http://" + this.$store.state.IP_Port + this.showList[index].pathURL;
+        var url = this.showList[index].address;
         var toolURL =
-          "<iframe src=" +
+          "<video src=" +
           url +
-          ' style="width: 100%;height:100%" frameborder="0" controls></iframe>';
+          ' style="width: 100%;height:100%" controls></video>';
         this.panel = jsPanel.create({
           headerControls: {
             smallify: "remove"
@@ -391,7 +382,22 @@ export default {
         });
         return false;
       }
+    },
+    filterSizeType(value) {
+      if(/(KB|MB|GB|B)$/.test(value)){
+        return value;
+      } else {
+        if (value === 0) return "0 B";
+        let k = 1024;
+        let sizes = ["B", "KB", "MB", "GB"];
+        let i = Math.floor(Math.log(value) / Math.log(k));
+        return (value / Math.pow(k, i)).toPrecision(3) + " " + sizes[i];
+      }
+    },
+    filterTimeStyle(str) {
+      let result = str.split('.')[0];
+      return result.replace('T', " ");
     }
-  }
+  },
 };
 </script>

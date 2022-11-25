@@ -56,7 +56,7 @@ public class ModelTaskService {
         return ResultUtils.success(convertMdl(result));
     }
 
-    public JSONObject createTask(String pid, String userId) {
+    public JsonResult createTask(String pid, String userId) {
         // 获得任务服务器
         RestTemplate restTemplate = new RestTemplate();
         String urlStr = "http://" + managerServerIpAndPort + "/GeoModeling/taskNode/getServiceTask/" + pid; ////Step0:根据MD5获取可用的任务服务器
@@ -64,6 +64,9 @@ public class ModelTaskService {
         ResponseEntity<JSONObject> jsonObjectResponseEntity = restTemplate.getForEntity(urlStr, JSONObject.class);//虚拟http请求
         if (!jsonObjectResponseEntity.getStatusCode().is2xxSuccessful()) {
             throw new MyException(ResultEnum.ERROR);
+        }
+        if (jsonObjectResponseEntity.getBody().getInteger("code") != 1){
+            return ResultUtils.error(-1, jsonObjectResponseEntity.getBody().getString("msg"));
         }
         JSONObject result = jsonObjectResponseEntity.getBody().getJSONObject("data");
         String ip = result.getString("host");
@@ -82,7 +85,7 @@ public class ModelTaskService {
         }
         result = jsonObjectResponseEntity.getBody().getJSONObject("data");
         //保存url到相应的event和value
-        return result;
+        return ResultUtils.success(result);
     }
 
     public String invoke(JSONObject obj) {

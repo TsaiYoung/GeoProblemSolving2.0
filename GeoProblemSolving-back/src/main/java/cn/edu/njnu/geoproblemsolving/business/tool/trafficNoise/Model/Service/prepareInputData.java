@@ -15,15 +15,16 @@ public class prepareInputData {
      */
     public static void genShpZipFile(String destFilePath, String srcFilePath, String shpfileName) throws IOException {
         //生成shpfile压缩包文件的UDX配置文件 *.udxcfg
-        String tempFilePath = Thread.currentThread().getContextClassLoader().getResource("").getPath()+"..\\..\\data\\temp\\configure.udxcfg";
-        String allText = "";
+        InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("data/temp/configure.udxcfg");
 
-        File templateFile = new File(tempFilePath);
-        if (!templateFile.exists()) {
+        if (inputStream == null) {
             System.out.println("temp file dest not exist!");
             return;
         }
-        FileReader fileReader = new FileReader(templateFile);
+
+        String allText = "";
+
+        InputStreamReader fileReader = new InputStreamReader(inputStream,"utf8");
         BufferedReader reader = new BufferedReader(fileReader);
         String tempLine;
         while ((tempLine = reader.readLine()) != null) {
@@ -76,15 +77,16 @@ public class prepareInputData {
            @value:值
      */
     public static void genHeightUdxData(String filePath, String value) throws IOException {
-        String tempFilePath = Thread.currentThread().getContextClassLoader().getResource("").getPath()+"..\\..\\data\\temp\\udx_xml_Height.xml";
-        String allText = "";
+        InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("data/temp/udx_xml_Height.xml");
 
-        File tempFile = new File(tempFilePath);
-        if (!tempFile.exists()) {
+        if (inputStream == null) {
             System.out.println("temp file dest not exist!");
             return;
         }
-        FileReader fileReader = new FileReader(tempFile);
+
+        String allText = "";
+
+        InputStreamReader fileReader = new InputStreamReader(inputStream,"utf8");
         BufferedReader reader = new BufferedReader(fileReader);
         String tempLine;
         while ((tempLine = reader.readLine()) != null) {
@@ -129,15 +131,16 @@ public class prepareInputData {
     }
 
     public static void genBoundBoxUdxData(String filePath, String value) throws IOException {
-        String tempFilePath = Thread.currentThread().getContextClassLoader().getResource("").getPath()+"..\\..\\data\\temp\\udx_xml_RegionBBox.xml";
-        String allText = "";
+        InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("data/temp/udx_xml_RegionBBox.xml");
 
-        File tempFile = new File(tempFilePath);
-        if (!tempFile.exists()) {
+        if (inputStream == null) {
             System.out.println("temp file dest not exist!");
             return;
         }
-        FileReader fileReader = new FileReader(tempFile);
+
+        String allText = "";
+
+        InputStreamReader fileReader = new InputStreamReader(inputStream,"utf8");
         BufferedReader reader = new BufferedReader(fileReader);
         String tempLine;
         while ((tempLine = reader.readLine()) != null) {
@@ -182,15 +185,16 @@ public class prepareInputData {
     }
 
     public static void genSamplingSizeUdxData(String filePath, String value) throws IOException {
-        String tempFilePath = Thread.currentThread().getContextClassLoader().getResource("").getPath()+"..\\..\\data\\temp\\udx_xml_SamplingSize.xml";
-        String allText = "";
+        InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("data/temp/udx_xml_SamplingSize.xml");
 
-        File tempFile = new File(tempFilePath);
-        if (!tempFile.exists()) {
+        if (inputStream == null) {
             System.out.println("temp file dest not exist!");
             return;
         }
-        FileReader fileReader = new FileReader(tempFile);
+
+        String allText = "";
+
+        InputStreamReader fileReader = new InputStreamReader(inputStream,"utf8");
         BufferedReader reader = new BufferedReader(fileReader);
         String tempLine;
         while ((tempLine = reader.readLine()) != null) {

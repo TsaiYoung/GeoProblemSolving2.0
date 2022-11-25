@@ -32,7 +32,7 @@ public class ModelTaskController {
 
     @RequestMapping(value = "/createTask/{pid}/{userId}", method = RequestMethod.GET)
     JsonResult createTask(@PathVariable("pid") String pid, @PathVariable("userId") String userId) {
-        return ResultUtils.success(modelTaskService.createTask(pid, userId));
+        return modelTaskService.createTask(pid, userId);
     }
 
 //    无需配置文件的上传接口

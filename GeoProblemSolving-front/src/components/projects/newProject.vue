@@ -331,6 +331,7 @@ export default {
                   {userId: this.$store.getters.userId, name: this.$store.getters.userName}
                 );
                 this.addHistoryEvent(this.createProjectInfo.aid);
+                this.$router.go(-1);
               }
             })
             .catch((err) => {
@@ -395,7 +396,6 @@ export default {
             .post("/GeoProblemSolving/res/image", formData)
             .then((res) => {
               if (res.data.code == 0) {
-                console.log(res);
                 this.pictureUrl = res.data.data;
                 this.img = e.target.result;
                 $("#choosePicture").val("");

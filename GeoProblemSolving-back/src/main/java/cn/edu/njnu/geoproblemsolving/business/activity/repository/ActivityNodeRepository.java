@@ -6,4 +6,5 @@ import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 
 @RepositoryRestResource(path = "activityNode")
 public interface ActivityNodeRepository extends MongoRepository<ActivityNode, String> {
+
 }

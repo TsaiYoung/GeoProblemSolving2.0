@@ -847,6 +847,10 @@ svg {
 .operator {
     height: 30px;
     padding: 8px 0;
+    overflow: hidden;
+    word-break: break-word;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 } 
 .operation-waiting {
     height: 30px;
@@ -891,6 +895,47 @@ svg {
     max-height: 60px;
     padding: 5px;
     overflow: hidden;
+}
+.version-list {
+  height: calc(100vh - 150px);
+  padding: 5px;
+  background-color: white;
+  border-radius: .25rem;
+  overflow: auto;
+}
+.version {
+  height: 38px;
+  cursor: pointer;
+  margin-bottom: 5px;
+}
+.version-title{
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  margin-bottom: 10px;
+}
+.version-list .card {
+  border: 0px solid rgba(0,0,0,.125);
+}
+.version .form-check-input {
+  position: inherit;
+  margin: 7px 5px 0 5px;
+}
+.version-icon {
+  height: 20px;
+  margin-top: 3px;
+}
+.version-name {
+  margin-left: 2px;
+  font-size: 12px;
+  margin-top: 2px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.version-load {
+  margin-top: 10px;
+  text-align: center;
 }
 
 .fade {

@@ -1,6 +1,6 @@
 /*!
  * ====================================================
- * kityminder-editor - v1.0.67 - 2021-07-06
+ * kityminder-editor - v1.0.67 - 2021-11-16
  * https://github.com/fex-team/kityminder-editor
  * GitHub: https://github.com/fex-team/kityminder-editor 
  * Copyright (c) 2021 ; Licensed 
@@ -3626,7 +3626,7 @@ angular.module('kityminderEditor')
                     var a = document.createElement("a");
                     a.download = map.name;
                     a.target = "_blank";
-                    a.href = 'http://' + IP_Port + map.pathURL;
+                    a.href = location.protocol + '//' + IP_Port + map.pathURL;
                     $("body").append(a);
                     a.click();
                     $(a).remove();
@@ -3648,7 +3648,7 @@ angular.module('kityminderEditor')
                             formData.append("paths", temp.toString());
 
                             $.ajax({
-                                url: 'http://' + IP_Port + '/GeoProblemSolving/rip/del',
+                                url: location.protocol + '//' + IP_Port + '/GeoProblemSolving/rip/del',
                                 type: "POST",
                                 data: formData,
                                 async: false,
@@ -3773,7 +3773,7 @@ angular.module('kityminderEditor')
                                         var fileBlob = new File([blob], filename);
 
                                         $.ajax({
-                                            url: 'http://' + IP_Port + '/GeoProblemSolving/res/image',
+                                            url: location.protocol + '//' + IP_Port + '/GeoProblemSolving/res/image',
                                             type: "POST",
                                             data: formData,
                                             processData: false,
@@ -3782,7 +3782,7 @@ angular.module('kityminderEditor')
                                                 if (data.code == 0) {
                                                     var thumbnailPath = data.data;
 
-                                                    resaveResource(fileBlob, {uid: map.uid, thumbnail: thumbnailPath });
+                                                    resaveResource(fileBlob, { thumbnail: thumbnailPath });
 
                                                     // 初始化原始导图
                                                     originalMap = JSON.stringify(editor.minder.exportJson());
@@ -3869,7 +3869,7 @@ angular.module('kityminderEditor')
 
                                         try {
                                             $.ajax({
-                                                url: 'http://' + IP_Port + '/GeoProblemSolving/res/image',
+                                                url: location.protocol + '//' + IP_Port + '/GeoProblemSolving/res/image',
                                                 type: "POST",
                                                 data: formData,
                                                 processData: false,
@@ -4132,7 +4132,7 @@ angular.module('kityminderEditor')
 						// 		var map = {};
 						// 		try {
 						// 			$.ajax({
-						// 				url: 'http://' + IP_Port + '/GeoProblemSolving/resource/inquiry?key=resourceId&value=' + resourceId,
+						// 				url: location.protocol + '//' + IP_Port + '/GeoProblemSolving/resource/inquiry?key=resourceId&value=' + resourceId,
 						// 				type: "GET",
 						// 				async: false,
 						// 				success: function (data) {
@@ -4169,7 +4169,7 @@ angular.module('kityminderEditor')
 						// 					return;
 						// 			}
 
-						// 			var url = "http://" + IP_Port + map.pathURL;
+						// 			var url = location.protocol + '//' + IP_Port + map.pathURL;
 						// 			var xhr = new XMLHttpRequest();
 						// 			xhr.open("GET", url, true);
 						// 			xhr.onload = function (e) {
@@ -4201,11 +4201,13 @@ angular.module('kityminderEditor')
 						// }
 
 						/*** for collaboration * start ***/
-						function getSocketConnect(data) {
+
+						buildSocketChannel(getSocketOperation, null, null);
+						function getSocketOperation(data) {
 
 							if (data != {}) {
-								if (data.messageType == "operation" && data.event == "contentchange") {
-									var mindmap = JSON.parse(data.value);
+								if (data.type == "operation" && data.behavior == "contentchange") {
+									var mindmap = JSON.parse(data.content);
 									editor.minder.importJson(mindmap);
 									window.localStorage.__dev_minder_content = JSON.stringify(editor.minder.exportJson());
 								}
@@ -5434,7 +5436,7 @@ angular.module('kityminderEditor')
 
                                 var folderId = pageId;
                                 $.ajax({
-                                    url: 'http://' + IP_Port + '/GeoProblemSolving/folder/removeFile?fileId=' + map.resourceId + '&folderId=' + folderId,
+                                    url: location.protocol + '//' + IP_Port + '/GeoProblemSolving/folder/removeFile?fileId=' + map.resourceId + '&folderId=' + folderId,
                                     type: "GET",
                                     async: false,
                                     success: function (data) {
@@ -5539,7 +5541,7 @@ angular.module('kityminderEditor')
 
                                         try {
                                             $.ajax({
-                                                url: 'http://' + IP_Port + '/GeoProblemSolving/folder/uploadToFolder',
+                                                url: location.protocol + '//' + IP_Port + '/GeoProblemSolving/folder/uploadToFolder',
                                                 type: "POST",
                                                 data: formData,
                                                 processData: false,

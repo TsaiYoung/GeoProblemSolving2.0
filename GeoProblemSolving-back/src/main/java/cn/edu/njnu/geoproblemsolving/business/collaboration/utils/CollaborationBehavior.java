@@ -122,6 +122,9 @@ public class CollaborationBehavior {
                     user.getValue().getSession().getBasicRemote().sendText(messageObject.toString());
                 }
             } else {
+                if(!receivers.contains(sender.getUserId())) {
+                    receivers.add(sender.getUserId());
+                }
                 messageObject.put("receivers", receivers);
                 // send message
                 for (String receiver : receivers) {
@@ -165,10 +168,26 @@ public class CollaborationBehavior {
 
     public void sendStoredMsgRecords(HashMap<String, CollaborationUser> participants, MsgRecords msgRecords) {
         try {
-
             JSONObject messageObject = new JSONObject();
             messageObject.put("type", "message-store");
-            messageObject.put("content", msgRecords);
+            messageObject.put("time", msgRecords.getCreatedTime());
+            messageObject.put("recordId", msgRecords.getRecordId());
+            messageObject.put("participants", msgRecords.getParticipants());
+
+            for (Map.Entry<String, CollaborationUser> participant : participants.entrySet()) {
+                CollaborationUser receiver = participant.getValue();
+                receiver.getSession().getBasicRemote().sendText(messageObject.toString());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void sendStoredMsgRecords(HashMap<String, CollaborationUser> participants, String oid) {
+        try {
+            JSONObject messageObject = new JSONObject();
+            messageObject.put("type", "message-store");
+            messageObject.put("oid", oid);
 
             for (Map.Entry<String, CollaborationUser> participant : participants.entrySet()) {
                 CollaborationUser receiver = participant.getValue();
@@ -184,20 +203,18 @@ public class CollaborationBehavior {
         // save each message
         ArrayList<String> msgList = new ArrayList<>();
         ArrayList<String> memberIds = new ArrayList<>();
-        ArrayList<JSONObject> participants = new ArrayList<>();
 
         for (ChatMsg message : records) {
             msgList.add(message.getMessageId());
 
             if (!memberIds.contains(message.getSender().getUserId())) {
                 memberIds.add(message.getSender().getUserId());
-                participants.add(message.getSender().getUserInfo());
             }
 
             chatMsgRepository.save(message);
         }
         // save message records
-        MsgRecords msgRecords = (MsgRecords) msgRecordsService.msgRecordsCreate(aid, msgList, participants).getData();
+        MsgRecords msgRecords = (MsgRecords) msgRecordsService.msgRecordsCreate(aid, msgList, memberIds).getData();
         return msgRecords;
     }
 
@@ -292,18 +309,43 @@ public class CollaborationBehavior {
                 messageObject.put("operator", config.getOperator());
                 // send message
                 for (Map.Entry<String, CollaborationUser> participant : participants.entrySet()) {
-                    participant.getValue().getSession().getBasicRemote().sendText(messageObject.toString());
+                    if(participant.getValue().getUserId().equals(config.getOperator())){
+                        messageObject.put("waiting", -1);
+                        participant.getValue().getSession().getBasicRemote().sendText(messageObject.toString());
+                    } else if (queue.contains(participant.getValue().getUserId())) {
+                        for (int i = 0; i < queue.size(); i++) {
+                            if (queue.get(i).equals(participant.getValue().getUserId())) {
+                                messageObject.put("waiting", i + 1);
+                                participant.getValue().getSession().getBasicRemote().sendText(messageObject.toString());
+                                break;
+                            }
+                        }
+                    } else {
+                        messageObject.put("waiting", 0);
+                        participant.getValue().getSession().getBasicRemote().sendText(messageObject.toString());
+                    }
                 }
             } else if (type.equals("control-stop")) {
                 messageObject.put("operator", config.getOperator());
                 // send message
                 for (Map.Entry<String, CollaborationUser> participant : participants.entrySet()) {
-                    for (int i = 0; i < queue.size(); i++) {
-                        if (queue.get(i).equals(participant.getValue().getUserId())) {
-                            messageObject.put("waiting", i);
-                            participant.getValue().getSession().getBasicRemote().sendText(messageObject.toString());
-                            break;
+                    if(participant.getValue().getUserId().equals(sender.getUserId())){
+                        messageObject.put("waiting", 0);
+                        participant.getValue().getSession().getBasicRemote().sendText(messageObject.toString());
+                    } else if(participant.getValue().getUserId().equals(config.getOperator())){
+                        messageObject.put("waiting", -1);
+                        participant.getValue().getSession().getBasicRemote().sendText(messageObject.toString());
+                    } else if (queue.contains(participant.getValue().getUserId())) {
+                        for (int i = 0; i < queue.size(); i++) {
+                            if (queue.get(i).equals(participant.getValue().getUserId())) {
+                                messageObject.put("waiting", i + 1);
+                                participant.getValue().getSession().getBasicRemote().sendText(messageObject.toString());
+                                break;
+                            }
                         }
+                    } else {
+                        messageObject.put("waiting", 0);
+                        participant.getValue().getSession().getBasicRemote().sendText(messageObject.toString());
                     }
                 }
             }
@@ -325,7 +367,13 @@ public class CollaborationBehavior {
         }
         JSONObject messageObject = new JSONObject();
         messageObject.put("type", "computation");
-        messageObject.put("computeOutputs", computeResult.getOutputs());
+        messageObject.put("computeSuc", computeResult.isComputeSuc());
+        if (computeResult.isComputeSuc()){
+            //模型运算输出
+            messageObject.put("outputInfo", computeResult.getOutputs());
+            //生成的资源
+            messageObject.put("operationId", computeResult.getOid());
+        }
         for (Map.Entry<String, CollaborationUser> participant : participants.entrySet()) {
             for (int i = 0; i < oldReceiverStr.size(); i++) {
                 if (oldReceiverStr.get(i).equals(participant.getValue().getUserId())) {
@@ -335,11 +383,15 @@ public class CollaborationBehavior {
         }
     }
 
-    public void sendTasKAssignment(HashMap<String, CollaborationUser> participants, CollaborationUser sender, JSONObject msgJson) throws IOException {
+    public void sendTasKAssignment(HashMap<String, CollaborationUser> participants, CollaborationUser sender, JSONObject msgJson, String receiverId) throws IOException {
         try {
-
+            if (receiverId != null){
+                CollaborationUser collaborationUser = participants.get(receiverId);
+                collaborationUser.getSession().getBasicRemote().sendText(msgJson.toString());
+                return;
+            }
             for (Map.Entry<String, CollaborationUser> participant : participants.entrySet()) {
-                //发送者的就不需要 webSocket 进行广播通知，在页面上有相应的处理逻辑
+                // the message didn't need to receive the message.
                 if (participant.getValue().getUserId().equals(sender.getUserId())) continue;
                 participant.getValue().getSession().getBasicRemote().sendText(msgJson.toString());
             }

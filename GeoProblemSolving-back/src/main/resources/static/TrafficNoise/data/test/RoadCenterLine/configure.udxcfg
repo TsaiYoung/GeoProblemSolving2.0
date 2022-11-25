@@ -1,9 +1,0 @@
-<UDXZip>
-	<Name count="4">
-		<add value="RoadCenterLine.shp" />
-		<add value="RoadCenterLine.dbf" />
-		<add value="RoadCenterLine.prj" />
-		<add value="RoadCenterLine.shx" />
-	</Name>
-	<Format>shapefile</Format>
-</UDXZip>

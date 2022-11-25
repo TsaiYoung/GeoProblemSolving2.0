@@ -16,7 +16,7 @@ public class ModelServiceFactory {
 		String url = modeljson.getString("m_url");
 		String pid = modeljson.getString("p_id");
 		String mid = modeljson.getString("m_id");
-		boolean registered = modeljson.getBoolean("m_register");
+		boolean registered = modeljson.getBooleanValue("m_register");
 		String des = jMs.getString("ms_des");
 		String version = jMs.getString("mv_num");
 		int msplatform = jMs.getInteger("ms_platform");

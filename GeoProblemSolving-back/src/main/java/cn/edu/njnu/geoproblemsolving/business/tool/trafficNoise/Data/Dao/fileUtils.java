@@ -1,11 +1,12 @@
 package cn.edu.njnu.geoproblemsolving.business.tool.trafficNoise.Data.Dao;
 
 import org.apache.commons.io.FileUtils;
-//import org.apache.commons.lang.StringUtils;
 import org.springframework.util.StringUtils;
 
 import java.io.*;
+import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -15,15 +16,35 @@ import java.util.zip.ZipOutputStream;
 
 public class fileUtils {
     public static String downloadFileFromURL(String url, String dirLocation, String fileName) {
+        int byteread = 0;
+        int bytesum = 0;
         try {
             URL httpUrl = new URL(url);
-            File file = new File(dirLocation + fileName);
-            file.createNewFile();
-            FileUtils.copyURLToFile(httpUrl, file);
-            System.out.println("Download " + fileName + " successfully!");
+            HttpURLConnection conn = (HttpURLConnection)httpUrl.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setDoInput(true);
+            conn.setDoOutput(true);
+            conn.setRequestProperty("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9");
+            conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36");
+            conn.setRequestProperty("Accept-Encoding", "gzip, deflate, br");
+            conn.setRequestProperty("connection", "Keep-Alive");
+            conn.connect();
+
+            int type = conn.getResponseCode();
+            if(type == HttpURLConnection.HTTP_OK) {
+                InputStream inputStream = conn.getInputStream();
+                FileOutputStream fileOutputStream = new FileOutputStream(dirLocation + fileName);
+
+                byte[] bytes = new byte[1024];
+                while ((byteread = inputStream.read(bytes)) != -1) {
+                    bytesum += byteread;
+                    fileOutputStream.write(bytes, 0, byteread);
+                }
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("Faid to download " + fileName + "!");
+            System.out.println("Failed to download " + fileName + "!");
         }
         return "success";
     }
@@ -64,7 +85,7 @@ public class fileUtils {
                 }
 
                 //保存文件路径信息
-                System.err.println("unzip：" + outPath);
+                System.out.println("unzip：" + outPath);
                 OutputStream out = new FileOutputStream(outPath);
                 byte[] buf1 = new byte[2048];
                 int len;
@@ -78,7 +99,8 @@ public class fileUtils {
             zip.close();
 
         } catch (IOException e) {
-            e.printStackTrace();
+//            e.printStackTrace();
+            System.err.println(e.getMessage());
         }
 
         return flag;

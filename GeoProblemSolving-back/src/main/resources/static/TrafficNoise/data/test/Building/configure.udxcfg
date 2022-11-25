@@ -1,9 +1,0 @@
-<UDXZip>
-	<Name count="4">
-		<add value="Building.shp" />
-		<add value="Building.dbf" />
-		<add value="Building.prj" />
-		<add value="Building.shx" />
-	</Name>
-	<Format>shapefile</Format>
-</UDXZip>

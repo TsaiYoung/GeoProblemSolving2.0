@@ -10,6 +10,7 @@ import cn.edu.njnu.geoproblemsolving.business.activity.processDriven.service.imp
 import cn.edu.njnu.geoproblemsolving.common.utils.JsonResult;
 import cn.edu.njnu.geoproblemsolving.common.utils.ResultUtils;
 import com.alibaba.fastjson.JSONObject;
+import org.dom4j.DocumentException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -65,9 +66,9 @@ public class GeoActivityDriveController {
      * @param nodeIds
      * @return
      */
-    @RequestMapping(value = "/user/tag/{nodeIds}", method = RequestMethod.GET)
-    public JsonResult getUsersTag(@PathVariable HashSet<String> nodeIds){
-        return userDispatch.getNodeUserTag(nodeIds);
+    @RequestMapping(value = "/user/tag/{level}/{nodeIds}", method = RequestMethod.GET)
+    public JsonResult getUsersTag(@PathVariable Integer level, @PathVariable HashSet<String> nodeIds){
+        return userDispatch.getNodeUserTag(level, nodeIds);
     }
 
     /**
@@ -111,11 +112,12 @@ public class GeoActivityDriveController {
     public JsonResult setActivityRelation(@RequestBody JSONObject protocolJson) {
         JSONObject relation = protocolJson.getJSONObject("relation");
         JSONObject restriction = protocolJson.getJSONObject("restriction");
+        Integer level = protocolJson.getInteger("level");
         ActivityLinkProtocol activityRelation = JSONObject.parseObject(JSONObject.toJSONString(relation), ActivityLinkProtocol.class);
         LinkRestriction linkRestriction = JSONObject.parseObject(JSONObject.toJSONString(restriction), LinkRestriction.class);
         String id = activityRelation.getGraphId();
         activityRelation.setRestriction(linkRestriction);
-        ActivityLinkProtocol linkProtocol = geoAnalysisProcess.setLinkProtocol(id, activityRelation);
+        ActivityLinkProtocol linkProtocol = geoAnalysisProcess.setLinkProtocol(id, activityRelation, level);
         return ResultUtils.success(linkProtocol);
     }
 
@@ -145,7 +147,18 @@ public class GeoActivityDriveController {
             return ResultUtils.success(activityLinkProtocol);
         }
         return ResultUtils.error(-2, "Fail.");
+    }
 
+
+    @RequestMapping(value = "/{graphId}/{startNodeId}/{endNodeId}", method = RequestMethod.GET)
+    public JsonResult getLinkRestriction(@PathVariable String graphId,
+                                         @PathVariable String startNodeId,
+                                         @PathVariable String endNodeId){
+        LinkRestriction linkRestriction = geoAnalysisProcess.getLinkRestriction(graphId, startNodeId, endNodeId);
+        if (linkRestriction == null){
+            return ResultUtils.error(-1, "Fail");
+        }
+        return ResultUtils.success(linkRestriction);
     }
 
 

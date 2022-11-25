@@ -7,7 +7,7 @@
         <Menu
           mode="horizontal"
           :active-name="activeMenu"
-          style="height: 45px; line-height: 45px; z-index: 1"
+          style="height: 38px; line-height: 38px; z-index: 1"
           @on-select="changeMenuItem"
         >
           <MenuItem name="Workspace">
@@ -16,6 +16,9 @@
           <MenuItem name="Task">
             <Icon type="ios-git-network"/>Task management
           </MenuItem>
+          <!-- <MenuItem name="Workflow">
+            <Icon type="ios-git-network"/>Workflow
+          </MenuItem> -->
           <!-- <MenuItem name="Introduction">
             <Icon type="ios-paper" />About
           </MenuItem> -->
@@ -29,59 +32,6 @@
             :ops="scrollOps"
             style="height: calc(100vh - 225px); margin-top: 5px"
           >
-            <!-- <context-res
-              v-if="
-                activityInfo.purpose ==
-                'Context definition & resource collection'
-              "
-              :activityInfo="activityInfo"
-              :participants="participants"
-            ></context-res>
-            <data-processing
-              v-else-if="activityInfo.purpose == 'Data processing'"
-              :activityInfo="activityInfo"
-              :participants="participants"
-            ></data-processing>
-            <data-visual
-              v-else-if="activityInfo.purpose == 'Data visualization'"
-              :activityInfo="activityInfo"
-              :participants="participants"
-            ></data-visual>
-            <model-build
-              v-else-if="
-                activityInfo.purpose == 'Geo-analysis model construction'
-              "
-              :activityInfo="activityInfo"
-              :participants="participants"
-            ></model-build>
-            <model-evaluation
-              v-else-if="
-                activityInfo.purpose == 'Model effectiveness evaluation'
-              "
-              :activityInfo="activityInfo"
-              :participants="participants"
-            ></model-evaluation>
-            <geo-simulation
-              v-else-if="activityInfo.purpose == 'Geographical simulation'"
-              :activityInfo="activityInfo"
-              :participants="participants"
-            ></geo-simulation>
-            <geo-analysis
-              v-else-if="activityInfo.purpose == 'Data analysis'"
-              :activityInfo="activityInfo"
-              :participants="participants"
-            ></geo-analysis>
-            <decision-making
-              v-else-if="activityInfo.purpose == 'Decision making'"
-              :activityInfo="activityInfo"
-              :participants="participants"
-            ></decision-making>
-            <universal-space
-              v-else
-              :activityInfo="activityInfo"
-              :participants="participants"
-              :projectInfo="projectInfo"
-            ></universal-space> -->
             <universal-space
               :activityInfo="activityInfo"
               :participants="participants"
@@ -92,6 +42,9 @@
         <div v-show="activeMenu == 'Task'">
           <task-manager :activityInfo="activityInfo" :userInfo="userInfo" :projectInfo="projectInfo" ref="task"></task-manager>
         </div>
+        <!-- <div v-show="activeMenu == 'Workflow'">
+          <new-workflow :activityInfo="activityInfo" :userInfo="userInfo" :projectInfo="projectInfo" ref="workflow"></new-workflow>
+        </div> -->
       </div>
     </div>
     <Modal
@@ -194,6 +147,7 @@ import { get, del, post, put } from "../../../axios";
 // import activityShow from "./activityShow.vue";
 import taskManager from "./utils/taskManger.vue";
 import universalSpace from "./funcs/universalSpace.vue";
+import newWorkflow from "./utils/newWorkflow.vue";
 import contextRes from "./funcs/contextAndResource.vue";
 import dataProcessing from "./funcs/dataProcessing.vue";
 import dataVisual from "./funcs/dataVisualization.vue";
@@ -210,6 +164,7 @@ export default {
     // activityShow,
     taskManager,
     universalSpace,
+    newWorkflow,
     contextRes,
     dataProcessing,
     dataVisual,
@@ -246,18 +201,24 @@ export default {
       memberRoleModal: false,
       userRoleBtn: false,
       roleSelected: "",
-      socketId: "OperationServer/task/vueTask"
+      taskSocketId: "OperationServer/task-vueTask"
+      // taskSocketId: "OperationServer/workflow"
     };
   },
   created() {
     this.userRole = this.roleIdentity(this.activityInfo);
     this.getParticipants();
   },
+  mounted() {
+    this.operationApi.getActivityDoc(this.activityInfo.aid);
+    // this.startSocket();
+  },
   watch: {
     activityInfo: {
       immediate: true,
       handler(){
-        this.socketId = `OperationServer/${this.projectInfo.aid}/${this.activityInfo.aid}`;
+          this.taskSocketId = `OperationServer/task${this.projectInfo.aid}/${this.activityInfo.aid}`;
+          // this.taskSocketId = `OperationServer/workflow${this.projectInfo.aid}/${this.activityInfo.aid}`;
       }
     }
   },
@@ -265,6 +226,12 @@ export default {
     this.closeTaskSocket();
   },
   methods: {
+    // startSocket(){
+    //   let that = this;
+    //   setTimeout(function(){
+    //     that.initTaskSocket();
+    //   },3000);
+    // },
     roleIdentity(activity) {
       return this.userRoleApi.roleIdentify(
         activity.members,
@@ -369,14 +336,14 @@ export default {
             if (res.data.code == 0) {
               this.participants.push(user);
               // update actvitiy doc
-              this.operationApi.participantUpdate(
-                this.activityInfo.aid,
-                "invite",
-                user.userId,
-                user.name,
-                user.role,
-                user.domain
-              );
+              // this.operationApi.participantUpdate(
+              //   this.activityInfo.aid,
+              //   "join",
+              //   user.userId,
+              //   user.name,
+              //   "ordinary-member",
+              //   user.domain
+              // );
               //notice
               let notice = {
                 recipientId: user.userId,
@@ -456,7 +423,7 @@ export default {
               "role",
               member.userId,
               member.name,
-              member.role,
+              role,
               user.domain
             );
             this.getParticipants();
@@ -528,6 +495,7 @@ export default {
         .delete(url)
         .then((res) => {
           if (res.data.code == 0) {
+            this.operationApi.getActivityDoc(this.activityInfo.aid)
             this.operationApi.participantUpdate(
               this.activityInfo.aid,
               "remove",
@@ -680,6 +648,14 @@ export default {
         this.closeTaskSocket();
       }
     },
+    // changeMenuItem(name) {
+    //   this.activeMenu = name;
+    //   if (name == "Workflow"){
+    //     this.initTaskSocket();
+    //   }else {
+    //     this.closeTaskSocket();
+    //   }
+    // },
     getParticipants() {
       let url = "";
       let activity = this.activityInfo;
@@ -706,20 +682,33 @@ export default {
         });
     },
     initTaskSocket(){
-      if (!socketApi.getSocketInfo(this.socketId).linked){
-        socketApi.initWebSocket(this.socketId);
+      if (!socketApi.getSocketInfo(this.taskSocketId).linked){
+        socketApi.initWebSocket(this.taskSocketId);
         let sockMsg = {
           type: "test",
           sender: this.userInfo.userId
         };
-        socketApi.sendSock(this.socketId, sockMsg, this.$refs.task.socketOnMessage);
+        socketApi.sendSock(this.taskSocketId, sockMsg, this.$refs.task.socketOnMessage);
       }else {
         console.log(`${this.projectInfo.name}: ${this.activityInfo.name}task has connected.`);
       }
     },
+    // initTaskSocket(){
+    //   if (!socketApi.getSocketInfo(this.taskSocketId).linked){
+    //     socketApi.initWebSocket(this.taskSocketId);
+    //     let sockMsg = {
+    //       type: "test",
+    //       sender: this.userInfo.userId
+    //     };
+    //     socketApi.sendSock(this.taskSocketId, sockMsg, this.$refs.workflow.socketOnMessage);
+    //     console.log("1");
+    //   }else {
+    //     console.log(`workflow${this.projectInfo.name}: ${this.activityInfo.name}task has connected.`);
+    //   }
+    // },
     closeTaskSocket(){
-      if (socketApi.getSocketInfo(this.socketId).linked){
-        socketApi.close(this.socketId);
+      if (socketApi.getSocketInfo(this.taskSocketId).linked){
+        socketApi.close(this.taskSocketId);
       }
     },
   },

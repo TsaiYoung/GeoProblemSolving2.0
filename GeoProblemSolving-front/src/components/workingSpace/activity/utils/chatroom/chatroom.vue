@@ -454,7 +454,7 @@ export default {
           chatMsg["content"] = chatMsg.activeUser.name + " join the meeting.";
           this.msglist.push(chatMsg);
         } else if (chatMsg.behavior == "off") {
-          chatMsg["content"] = chatMsg.activeUser.name + " stop the meeting.";
+          chatMsg["content"] = chatMsg.activeUser.name + " quit the meeting.";
           this.msglist.push(chatMsg);
         }
         this.updateParticipants(chatMsg.participants);
@@ -475,7 +475,7 @@ export default {
               this.msglist[i].status = "done";
               msgCheck = true;
             } else if (
-              (this.msglist[i].status = "sending" && current - time > threshold)
+              (this.msglist[i].status == "sending" && current - time > threshold)
             ) {
               this.msglist[i].status = "failed";
             }
@@ -487,21 +487,21 @@ export default {
           }
 
           // geographic concepts
-          if (chatMsg.frequency != undefined && chatMsg.geoConcepts != "") {
-            this.msgConcepts = chatMsg.frequency;
-            this.msgConceptMap = chatMsg.conceptMap;
-            this.extendedConceptsShow = true;
-          }
+          // if (chatMsg.frequency != undefined && chatMsg.geoConcepts != "") {
+          //   this.msgConcepts = chatMsg.frequency;
+          //   this.msgConceptMap = chatMsg.conceptMap;
+          //   this.extendedConceptsShow = true;
+          // }
         }
       } else if (chatMsg.type == "message-store") {
-        // this.operationApi.communicationRecord(
-        //   this.activityInfo.aid,
-        //   "",
-        //   "",
-        //   chatMsg.recordId,
-        //   chatMsg.time,
-        //   chatMsg.participants
-        // );
+        this.operationApi.communicationRecord(
+          this.activityInfo.aid,
+          "",
+          "",
+          chatMsg.recordId,
+          chatMsg.time,
+          chatMsg.participants
+        );
         chatMsg["type"] = "members";
         chatMsg["content"] = "You have the only person in the meeting.";
         this.msglist.push(chatMsg);

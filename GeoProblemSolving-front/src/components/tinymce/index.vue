@@ -174,7 +174,7 @@ export default {
             data: formData
           })
             .then(res => {
-              console.log(res.data.data);
+              // console.log(res.data.data);
               // 返回de图片的地址
               success(res.data.data);
             })

@@ -1,3 +1,3 @@
 <Dataset>
-  <XDO name="regionBBox" kernelType="string" value="379792.06010243413, 3542956.297208225, 379926.7791486688, 3543054.755859941" />
+  <XDO name="regionBBox" kernelType="string" value="$(boundBoxValue)" />
 </Dataset>

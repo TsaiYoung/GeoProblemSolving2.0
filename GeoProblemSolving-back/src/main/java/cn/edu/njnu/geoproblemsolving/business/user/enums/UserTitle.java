@@ -5,7 +5,7 @@ import lombok.Getter;
 @Getter
 
 public enum UserTitle {
-    Prof("Professor"), Dr("Dr"), Mr("Mr"), Ms("Ms"), Miss("Miss"), Mrs("Mrs"), Mx("Mx");
+    Professor("Professor"), Dr("Dr"), Mr("Mr"), Ms("Ms"), Miss("Miss"), Mrs("Mrs"), Mx("Mx");
 
     private String desc;
 

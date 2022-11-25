@@ -1,9 +1,14 @@
 package cn.edu.njnu.geoproblemsolving.business.resource.util;
 
 import cn.edu.njnu.geoproblemsolving.business.resource.entity.ResourceEntity;
+import cn.edu.njnu.geoproblemsolving.business.user.dao.UserDao;
+import cn.edu.njnu.geoproblemsolving.business.user.entity.TokenInfo;
+import cn.edu.njnu.geoproblemsolving.business.user.entity.UserEntity;
 import cn.edu.njnu.geoproblemsolving.common.utils.JsonResult;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.http.converter.ByteArrayHttpMessageConverter;
 import org.springframework.stereotype.Service;
@@ -12,12 +17,24 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
+import java.util.Date;
 
+@Service
 public class RestTemplateUtil {
-    // @Autowired
-    // RestTemplate restTemplate;
+    @Value("${client_id}")
+    String clientId;
+
+    @Value("${client_secret}")
+    String clientSecret;
+
+    @Value("${userServerLocation}")
+    String userServerLocation;
+
+    @Autowired
+    UserDao userDao;
 
     RestTemplate restTemplate = new RestTemplate();
+
 
     /**
      * 文件下载请求
@@ -150,6 +167,33 @@ public class RestTemplateUtil {
         HttpHeaders headers = new HttpHeaders();
         HttpEntity<Object> httpEntity = new HttpEntity<>(headers);
         return restTemplate.exchange(url, HttpMethod.DELETE, httpEntity, JSONObject.class).getBody();
+    }
+
+
+    public String  refreshToken(String userId, String refreshToken){
+        String url = "http://"+ userServerLocation +"/oauth/token";
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Type", "application/x-www-form-urlencoded");
+        LinkedMultiValueMap<String, String> payLoad = new LinkedMultiValueMap<>();
+        payLoad.add("grant_type", "refresh_token");
+        payLoad.add("refresh_token", refreshToken);
+        payLoad.add("client_id", clientId);
+        payLoad.add("client_secret", clientSecret);
+        HttpEntity<LinkedMultiValueMap<String, String>> httpEntity = new HttpEntity<>(payLoad, headers);
+        try {
+            JSONObject result = restTemplate.exchange(url, HttpMethod.POST, httpEntity, JSONObject.class).getBody();
+            String access_token = result.getString("access_token");
+            String refresh_token = result.getString("refresh_token");
+            Date invalidTime = result.getObject("invalidTime", Date.class);
+            int expires = result.getInteger("expires_in");
+            TokenInfo userToken = new TokenInfo(access_token, refresh_token, expires, invalidTime);
+            UserEntity user = userDao.findUserByIdOrEmail(userId);
+            user.setTokenInfo(userToken);
+            userDao.saveLocalUser(user);
+            return access_token;
+        }catch (Exception e){
+            return null;
+        }
     }
 
 

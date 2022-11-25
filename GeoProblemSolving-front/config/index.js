@@ -17,7 +17,7 @@ module.exports = {
         pathRewrite: {
           '^/GeoProblemSolving': '/GeoProblemSolving'
         }
-      }
+      },
     },
 
     // Various Dev Server settings

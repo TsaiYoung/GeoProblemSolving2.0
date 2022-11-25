@@ -1,8 +1,13 @@
 package cn.edu.njnu.geoproblemsolving.business.resource.service.Impl;
 
+import cn.edu.njnu.geoproblemsolving.business.CommonUtil;
+import cn.edu.njnu.geoproblemsolving.business.activity.docParse.DocParseServiceImpl;
+import cn.edu.njnu.geoproblemsolving.business.activity.entity.Activity;
+import cn.edu.njnu.geoproblemsolving.business.activity.entity.Subproject;
 import cn.edu.njnu.geoproblemsolving.business.activity.processDriven.service.GeoAnalysisProcess;
 import cn.edu.njnu.geoproblemsolving.business.activity.processDriven.service.NodeService;
-import cn.edu.njnu.geoproblemsolving.business.activity.processDriven.service.TagUtil;
+import cn.edu.njnu.geoproblemsolving.business.activity.repository.ActivityRepository;
+import cn.edu.njnu.geoproblemsolving.business.activity.repository.SubprojectRepository;
 import cn.edu.njnu.geoproblemsolving.business.resource.dao.ActivityResDaoImpl;
 import cn.edu.njnu.geoproblemsolving.business.resource.entity.IUploadResult;
 import cn.edu.njnu.geoproblemsolving.business.resource.entity.ResourceEntity;
@@ -15,6 +20,7 @@ import cn.edu.njnu.geoproblemsolving.common.utils.ResultUtils;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.Lists;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.BeanUtils;
@@ -45,7 +51,8 @@ import java.util.*;
  * @Date 2021/4/20
  **/
 @Service
-public class ActivityResServiceImpl<num> implements ActivityResService {
+@Slf4j
+public class ActivityResServiceImpl implements ActivityResService {
     @Autowired
     UserDaoImpl userDao;
 
@@ -53,10 +60,19 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
     ActivityResDaoImpl activityResDao;
 
     @Autowired
+    ActivityRepository activityRepository;
+
+    @Autowired
+    SubprojectRepository subprojectRepository;
+
+    @Autowired
     GeoAnalysisProcess geoAnalysisProcess;
 
     @Autowired
     NodeService nodeService;
+
+    @Autowired
+    DocParseServiceImpl docParseService;
 
 
     @Value("${dataContainer}")
@@ -115,7 +131,7 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
         //记录上传状态
         uploadInfos.failed = new ArrayList<>();
         uploadInfos.sizeOver = new ArrayList<>();
-        uploadInfos.uploaded = new ArrayList<ResourceEntity>();
+        uploadInfos.uploaded = new ArrayList<>();
         try {
             if (!ServletFileUpload.isMultipartContent(req)) {
                 System.out.println("File is not multimedia.");
@@ -125,13 +141,23 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
             String userId = (String) session.getAttribute("userId");
             String uploadName = userDao.findUserByIdOrEmail(userId).getName();
             String aid = req.getParameter("aid");
+            String type = req.getParameter("type");
+            //添加数据元数据相关操作
+            HashMap<String, String> meta = null;
+            if (type.equals("data")) {
+                meta = new HashMap<>();
+                meta.put("format", req.getParameter("format"));
+                meta.put("scale", req.getParameter("scale"));
+                meta.put("reference", req.getParameter("reference"));
+                meta.put("unit", req.getParameter("unit"));
+                meta.put("concept", req.getParameter("concept"));
+            }
             List<ResourceEntity> resourceList = activityResDao.queryByAid(aid);
             String[] pathsArray = req.getParameter("paths").split(",");
             ArrayList<String> paths = new ArrayList<>();
             for (String path : pathsArray) {
                 paths.add(path);
             }
-
 
             Collection<Part> parts = req.getParts();
             //多个肯定是在同一个文件夹的可以直接存入
@@ -147,7 +173,7 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
 
             //restTemplate工具类
             RestTemplateUtil httpUtil = new RestTemplateUtil();
-            HashMap<String, String> resTagMap = new HashMap<>();
+            HashSet<String> uploadUids = new HashSet<>();
             for (Part part : parts) {
                 try {
                     if (part.getName().equals("file")) {
@@ -161,10 +187,10 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
                             String fileName = temp[0];
                             String suffix = "." + temp[1];
 
-                            File fileTemp = File.createTempFile(UUID.randomUUID().toString(), suffix);//创建临时文件
-                            FileUtils.copyInputStreamToFile(part.getInputStream(), fileTemp);
+                            File tempFile = File.createTempFile(UUID.randomUUID().toString(), suffix);//创建临时文件
+                            FileUtils.copyInputStreamToFile(part.getInputStream(), tempFile);
                             // MultipartFile multipartFile = new MockMultipartFile(ContentType.APPLICATION_OCTET_STREAM.toString(), part.getInputStream());
-                            FileSystemResource multipartFile = new FileSystemResource(fileTemp);      //临时文件
+                            FileSystemResource multipartFile = new FileSystemResource(tempFile);      //临时文件
 
                             valueMap.add("datafile", multipartFile);
                             valueMap.add("name", fileName);
@@ -210,12 +236,17 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
                                 String editToolInfo = req.getParameter("editToolInfo");
                                 res.setThumbnail(thumbnail);
                                 res.setEditToolInfo(editToolInfo);
-                            }
-                            catch (Exception ex){
+                            } catch (Exception ex) {
 
                             }
 
                             uploadInfos.uploaded.add(res);
+                            //======活动链接相关操作======================================
+                            //资源自动更新内容, public can auto update
+                            if (nodeService.nodeIsPresent(aid) != null) {
+                                uploadUids.add(uid);
+                            }
+                            //===================================================
                             //如果不是最后一个，则进入下一次循环
                             if (fileNum != 0) {
                                 continue;
@@ -229,6 +260,7 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
                                 }
                                 break;
                             }
+                            //将上传的资源存入文件夹中
                             List<ResourceEntity> putResList = aRes(resourceList, paths, uploadInfos.uploaded, "0");
                             int index = 0;
                             for (int i = 0; i < putResList.size(); i++) {
@@ -242,30 +274,34 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
                             Query query = new Query(Criteria.where("uid").is(rootResUid));
                             Update update = new Update();
                             update.set("children", putResList.get(index).getChildren());
-                            //不会出问题
+                            //将所上传的资源存入当前活动中
                             activityResDao.updateRes(query, update);
 
-                            //资源自动更新内容
-                            String resTag = TagUtil.setResourceTag(res);
-                            resTagMap.put(uid ,resTag);
                         } else {
                             uploadInfos.sizeOver.add(part.getSubmittedFileName());
                         }
                     }
                 } catch (Exception e) {
+                    System.out.println(e.toString());
                     uploadInfos.failed.add(part.getSubmittedFileName());
                 }
             }
-            //资源自动更新
-            // String graphId = req.getParameter("graphId");
-            // geoAnalysisProcess.batchResFlowAutoUpdate(graphId, aid, resTagMap);
+            //更新文档
+            uploadInfos.uploadedOperation = docParseService.uploadResource(aid, uploadInfos.uploaded, meta);
+            //更新当前节点,有节点的时候添加,无节点的时候不管。节点在有链接的时候创建,没有连接的时候无节点
+            nodeService.addResToNodeBatch(aid, uploadUids);
+            /*
+            资源流动
+             */
+            String graphId = req.getParameter("graphId");
+            geoAnalysisProcess.batchResFlowAutoUpdate(graphId, aid, uploadUids);
             return uploadInfos;
 
         } catch (Exception e) {
+            System.out.println(e.toString());
             return "Fail";
         }
     }
-
 
 
     private List<ResourceEntity> aRes(List<ResourceEntity> resList, ArrayList<String> paths, List<ResourceEntity> resources, String parent) {
@@ -293,6 +329,30 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
         return resList;
     }
 
+    //将单个资源存入
+    private List<ResourceEntity> aRes(List<ResourceEntity> resList, ArrayList<String> paths, ResourceEntity res, String parent) {
+        if (paths.size() == 0 || paths.get(0).equals("0")) {
+            res.setParent(parent);
+            resList.add(res);
+        } else {
+            String path = paths.remove(paths.size() - 1);
+            for (int i = 0; i < resList.size(); i++) {
+                if (res.getFolder()) {
+                    if (res.getUid().equals(path)) {
+                        aRes(res.getChildren(), paths, res, path);
+                        resList.set(i, res);
+                        break;
+                    }
+                } else {
+                    //不是文件夹，无 children 一说，直接跳过
+                    continue;
+                }
+            }
+        }
+        return resList;
+    }
+
+    @Deprecated
     @Override
     public String delResource(String aid, ArrayList<String> uids, ArrayList<String> paths) {
         //批量删除也只能删除一个文件夹内容的
@@ -300,6 +360,10 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
             for (String uid : uids) {
                 activityResDao.delResource(uid);
             }
+            //update document
+            docParseService.removeResource(aid, new HashSet<>(uids));
+            //update node
+            nodeService.delResInNodeBatch(aid, new HashSet<>(uids));
             return "suc";
         }
         //不是根目录情况则需要遍历删除
@@ -317,14 +381,64 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
             }
         }
 
+        //update node
+        nodeService.delResInNodeBatch(aid, new HashSet<>(uids));
+
         //增加同步节点
         return activityResDao.updateRes(query, update);
+    }
+
+    /**
+     * 删除属于活动的资源
+     * 由于资源分享的存在（可让资源在各活动之间移动,由于需要判断资源是否重复,所以并未改变资源的 Id,实际上本来就是相同资源）
+     * 当资源在根目录时候,资源实体直接是一个 document,若是直接以 uid 删除的话, 会把所有活动中的该资源都删除了
+     * 资源存于文件夹中时,因为文件夹是属于单个活动的,所以里面的资源也是和活动绑定了
+     * 支持批量删除(同一个文件夹), 仅支持同一个文件夹
+     * @param aid
+     * @param uids
+     * @param paths
+     * @return
+     */
+    @Override
+    public String delActivityRes(String aid, ArrayList<String> uids, ArrayList<String> paths) {
+        if (uids == null || uids.isEmpty()) return null;
+        try {
+            //处理根目录资源
+            if (paths.get(0).equals("0") && paths.size() == 1){
+                for(Iterator<String> it = uids.iterator(); it.hasNext();){
+                    String uid = it.next();
+                    activityResDao.delResource(uid, aid);
+                }
+            }else {
+                //非根目录情况
+                ArrayList<ResourceEntity> resInProjectList =  (ArrayList<ResourceEntity>)activityResDao.queryByAid(aid);
+                String rootFolderUid = paths.get(paths.size() - 1);
+                ArrayList<ResourceEntity> putResList = dResource(resInProjectList, uids, paths);
+                Query query = new Query(Criteria.where("uid").is(rootFolderUid));
+                Update update = new Update();
+                for (int i = 0; i < putResList.size(); i++) {
+                    ResourceEntity item = putResList.get(i);
+                    if (item.getUid().equals(rootFolderUid)){
+                        update.set("children", item.getChildren());
+                        break;
+                    }
+                }
+                activityResDao.updateRes(query, update);
+            }
+            //处理文档及节点
+            docParseService.removeResource(aid, new HashSet<>(uids));
+            nodeService.delResInNodeBatch(aid, new HashSet<>(uids));
+            return "suc";
+        }catch (Exception e){
+            log.error("Failed to remove resource in activity ---> ", e.toString());
+            return "fail";
+        }
     }
 
     //提供批量删除功能
     private ArrayList<ResourceEntity> dResource(ArrayList<ResourceEntity> resInProjectList, ArrayList<String> uids, ArrayList<String> paths) {
         if (paths.size() == 0 || paths.get(0).equals("0")) {
-            ArrayList<Integer> delIndex = new ArrayList<Integer>();
+            ArrayList<Integer> delIndex = new ArrayList<>();
             for (int j = 0; j < resInProjectList.size(); j++) {
                 ResourceEntity res = resInProjectList.get(j);
                 for (int k = 0; k < uids.size(); k++) {
@@ -397,27 +511,27 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
         Part file = req.getPart("file");
         JSONObject uploadRemoteResult = uploadFileToDataContainer(file);
         Integer uploadResultCode = uploadRemoteResult.getInteger("code");
-        if (uploadResultCode != 1){
+        if (uploadResultCode != 1) {
             return ResultUtils.error(-2, "Failed uploading file");
         }
         String dataIdInContainer = uploadRemoteResult.getJSONObject("data").getString("id");
         String address = "http://" + dataContainerIp + ":8082" + "/data/" + dataIdInContainer;
         //2. put
-        ArrayList<ResourceEntity> resourceList = (ArrayList<ResourceEntity>)activityResDao.queryByAid(aid);
+        ArrayList<ResourceEntity> resourceList = (ArrayList<ResourceEntity>) activityResDao.queryByAid(aid);
         ResourceEntity putRes = new ResourceEntity();
         putRes.setUid(uid);
         putRes.setAddress(address);
         String rootResUid = paths.get(paths.size() - 1);
         ArrayList<ResourceEntity> putResList = pResourceByPath(resourceList, putRes, paths);
         String updateRes = updateResourceInDB(rootResUid, putResList);
-        if (updateRes.equals("suc")){
+        if (updateRes.equals("suc")) {
             return ResultUtils.success(address);
         }
         return ResultUtils.error(-2, "fail");
     }
 
     //将更新后资源更新到数据库中
-    private String updateResourceInDB(String rootResUid, ArrayList<ResourceEntity> putResList){
+    private String updateResourceInDB(String rootResUid, ArrayList<ResourceEntity> putResList) {
         //putResList 含该activity 下所有资源
         Query query = new Query(Criteria.where("uid").is(rootResUid));
         Update update = new Update();
@@ -482,6 +596,7 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
     /**
      * 新版资源更新
      * 支持修改资源描述对应的资源实体(address)
+     *
      * @param aid
      * @param paths
      * @param putResInfo
@@ -491,11 +606,11 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
     public JsonResult putResourceByPath(String aid, ArrayList<String> paths, String putResInfo, HttpServletRequest request) throws IOException, ServletException {
         Part file = request.getPart("file");
         ResourceEntity putRes = JSONObject.parseObject(putResInfo, ResourceEntity.class);
-        if (file != null){
+        if (file != null) {
             //上传文件
             JSONObject uploadResult = uploadFileToDataContainer(file);
             Integer code = uploadResult.getInteger("code");
-            if (code != 1){
+            if (code != 1) {
                 return ResultUtils.error(-2, "Failed uploading file.");
             }
             uploadResult.getString("id");
@@ -512,7 +627,7 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
             putRes.setAddress(address);
             putRes.setFileSize(file.getSize());
         }
-        ArrayList<ResourceEntity> rootResList = (ArrayList<ResourceEntity>)activityResDao.queryByAid(aid);
+        ArrayList<ResourceEntity> rootResList = (ArrayList<ResourceEntity>) activityResDao.queryByAid(aid);
         if (paths.size() == 1 && paths.get(0).equals("0")) {
             String delResUid = putRes.getUid();
             ResourceEntity res = activityResDao.queryByUid(delResUid);
@@ -526,7 +641,7 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
         ArrayList<ResourceEntity> putResList = pResourceByPath(rootResList, putRes, paths);
         //更新数据库
         String updateResult = updateResourceInDB(rootResUid, putResList);
-        if (updateResult.equals("suc")){
+        if (updateResult.equals("suc")) {
             return ResultUtils.success(putRes);
         }
         return ResultUtils.error(-2, "Failed to update MongoDB.");
@@ -564,6 +679,7 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
                     BeanUtils.copyProperties(putRes, res, nullPropertyNames);
                     rootResList.remove(i);
                     rootResList.add(i, res);
+                    break;
                 }
             }
         } else {
@@ -619,18 +735,12 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
         return resList;
     }
 
-    /*
-    资源直接分享到项目根文件夹中
-    * @Author zhngzhng
-    * @Description Todo 
-    * @Param [userId, aid, uids]
-    * @Date 2021/4/21
-    */
+
     @Value("${userServerLocation}")
     String userServerLocation;
 
     @Override
-    public ArrayList<ResourceEntity> resourceToProject(String userId, String aid, String uids, ArrayList<String> paths) {
+    public JSONObject userResourceToProject(String userId, String aid, String uids, ArrayList<String> paths) {
         UserEntity sharer = userDao.findUserByIdOrEmail(userId);
         String access_token = sharer.getTokenInfo().getAccess_token();
         String sharerName = sharer.getName();
@@ -644,7 +754,9 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
 
             JSONArray fileList = getResult.getJSONArray("data");
             List<ResourceEntity> rootResList = activityResDao.queryByAid(aid);
+            //用于保存传过来的资源
             ArrayList<ResourceEntity> resList = new ArrayList<>();
+            HashSet<String> resIdSet = new HashSet<>();
 
             ArrayList<String> path = new ArrayList<>();
             for (Object item : pathArray) {
@@ -659,10 +771,31 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
                 if (path.size() == 1 && path.get(0).equals("0")) {
                     activityResDao.addResource(resourceEntity);
                 }
+                resIdSet.add(resourceEntity.getUid());
                 resList.add(resourceEntity);
             }
+            JSONObject sharedResultJson = new JSONObject();
+            sharedResultJson.put("sharedFile", resList);
+
+            Activity activity = null;
+            Optional<Activity> activityOptional = activityRepository.findById(aid);
+            if (!activityOptional.isPresent()) {
+                Optional<Subproject> subprojectOptional = subprojectRepository.findById(aid);
+                if (subprojectOptional.isPresent()){
+                    //分享到活动为subProject 可能有连接
+                    activity = subprojectOptional.get();
+                }
+            }else {
+                activity = activityOptional.get();
+            }
+            String graphId = null;
+            if (activity != null) graphId = activity.getParent();
             if (path.size() == 1 && path.get(0).equals("0")) {
-                return resList;
+                ArrayList<HashMap<String, String>> sharedResult = docParseService.shareResource(aid, resList);
+                nodeService.addResToNodeBatch(aid, resIdSet);
+                sharedResultJson.put("sharedResult", sharedResult);
+                geoAnalysisProcess.batchResFlowAutoUpdate(graphId, aid, resIdSet);
+                return sharedResultJson;
             }
             String rootResUid = path.get(path.size() - 1);
             //如果不是根目录则存入对应的文件夹下
@@ -676,8 +809,15 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
                 }
             }
             activityResDao.updateRes(query, update);
-            return resList;
+
+            //添加到文档 ---> 添加到节点
+            ArrayList<HashMap<String, String>> sharedResult = docParseService.shareResource(aid, resList);
+
+            nodeService.addResToNodeBatch(aid, resIdSet);
+            sharedResultJson.put("sharedResult", sharedResult);
+            return sharedResultJson;
         } catch (Exception e) {
+            e.printStackTrace();
             return null;
         }
     }
@@ -692,6 +832,9 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
         } else if (key.equals("privacy")) {
             //通过 privacy 进行查询
             return sResByPrivacy(value, projectRes, returnRes);
+        } else if (key.equals("uid")) {
+            //通过 privacy 进行查询
+            return sResByUid(value, projectRes, returnRes);
         }
         return null;
     }
@@ -724,23 +867,116 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
         return choseRes;
     }
 
+    private ArrayList<ResourceEntity> sResByUid(String uid, List<ResourceEntity> projectRes, ArrayList<ResourceEntity> choseRes) {
+        projectRes.stream().forEach(res -> {
+            if (res.getFolder()) {
+                sResByType(uid, res.getChildren(), choseRes);
+            } else {
+                if (res.getUid().equals(uid)) {
+                    choseRes.add(res);
+                }
+            }
+        });
+        return choseRes;
+    }
+
     @Override
     public String bindResToProject(ResourceEntity res, String aid) {
-        res.setUid(UUID.randomUUID().toString());
-        res.setUploadTime(new Date());
-        String fullName = res.getName();
-        String name = fullName.split("\\.")[0];
-        String suffix = fullName.split("\\.")[1];
-        res.setSuffix(suffix);
         res.setActivityId(aid);
-        res.setUserUpload(false);
-        res.setName(name);
+        if (res.getUid() == null || res.getUid().equals("")) {
+            res.setUid(UUID.randomUUID().toString());
+            res.setUploadTime(new Date());
+            String fullName = res.getName();
+            String name = fullName.split("\\.")[0];
+            String suffix = fullName.split("\\.")[1];
+            res.setSuffix("." + suffix);
+            res.setUserUpload(false);
+            res.setName(name);
+        }
         ResourceEntity addResource = activityResDao.addResource(res);
         if (addResource == null) {
             return "fail";
         }
-        //直接存储
+        //存储成功 ---> 修改文档 ---> 修改节点
         return "suc";
+    }
+
+
+    /**
+     * 当无路径的时候使用
+     * @param fromAid
+     * @param toAid
+     * @param resList
+     * @return
+     */
+    @Override
+    public String selectedResFlow(String fromAid, String toAid, List<ResourceEntity> resList) {
+        if (resList == null ||  resList.isEmpty()) return null;
+        HashSet<String> resIdSet = new HashSet<>();
+        resList.forEach(item->{
+            resIdSet.add(item.getUid());
+        });
+        if (activityResDao.addResource(resList) != null){
+            docParseService.resFlow(fromAid, toAid, resIdSet);
+            nodeService.addResToNodeBatch(toAid, resIdSet);
+            return "suc";
+        }
+        return null;
+    }
+
+    @Override
+    public String selectedResFlow(String fromAid, String toAid, List<ResourceEntity> resList, ArrayList<String> paths) {
+        try {
+            if (resList == null ||  resList.isEmpty()) return null;
+            HashSet<String> resIdSet = new HashSet<>();
+            resList.forEach(item->{
+                resIdSet.add(item.getUid());
+            });
+            Activity activity = null;
+            Optional<Activity> activityOptional = activityRepository.findById(toAid);
+            if (!activityOptional.isPresent()) {
+                Optional<Subproject> subprojectOptional = subprojectRepository.findById(toAid);
+                if (subprojectOptional.isPresent()){
+                    //分享到活动为subProject 可能有连接
+                    activity = subprojectOptional.get();
+                }
+            }else {
+                activity = activityOptional.get();
+            }
+            String graphId = null;
+            if (activity != null) graphId = activity.getParent();
+            if (paths.size() == 1 && paths.get(0).equals("0")) {
+                for (ResourceEntity item: resList){
+                    item.setActivityId(toAid);
+                    activityResDao.addResource(item);
+                }
+
+                docParseService.resFlow(fromAid, toAid, resIdSet);
+                nodeService.addResToNodeBatch(toAid, resIdSet);
+                geoAnalysisProcess.batchResFlowAutoUpdate(graphId, toAid, resIdSet);
+                return "suc";
+            }
+            String rootResUid = paths.get(paths.size() - 1);
+            List<ResourceEntity> rootResList = activityResDao.queryByAid(fromAid);
+            //如果不是根目录则存入对应的文件夹下
+            List<ResourceEntity> putResList = aRes(rootResList, paths, resList, "0");
+            Query query = new Query(Criteria.where("uid").is(rootResUid));
+            Update update = new Update();
+            for (ResourceEntity item : putResList) {
+                if (item.getUid().equals(rootResUid)) {
+                    update.set("children", item.getChildren());
+                    break;
+                }
+            }
+            activityResDao.updateRes(query, update);
+            docParseService.resFlow(fromAid, toAid, resIdSet);
+            nodeService.addResToNodeBatch(toAid, resIdSet);
+            geoAnalysisProcess.batchResFlowAutoUpdate(graphId, toAid, resIdSet);
+            return "suc";
+        }catch (Exception e){
+            System.out.println(e);
+            return null;
+        }
     }
 
     @Override
@@ -754,9 +990,9 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
     private ArrayList<ResourceEntity> gallFileInProject(List<ResourceEntity> resInProject, ArrayList<ResourceEntity> fileList) {
         for (int i = 0; i < resInProject.size(); i++) {
             ResourceEntity res = resInProject.get(i);
-            if (res.getFolder()){
+            if (res.getFolder()) {
                 gallFileInProject(res.getChildren(), fileList);
-            }else {
+            } else {
                 fileList.add(res);
             }
         }
@@ -764,8 +1000,8 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
     }
 
     /**
-     *
      * 地理过程驱动
+     *
      * @param aid
      * @param uid
      * @return
@@ -776,16 +1012,16 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
         return gFileById(resList, uid);
     }
 
-    private ResourceEntity gFileById(List<ResourceEntity> resList, String uid){
-        for (ResourceEntity res: resList){
-            if (!res.getFolder()){
-                if (res.getUid().equals(uid)){
+    private ResourceEntity gFileById(List<ResourceEntity> resList, String uid) {
+        for (ResourceEntity res : resList) {
+            if (!res.getFolder()) {
+                if (res.getUid().equals(uid)) {
                     return res;
                 }
-            }else {
+            } else {
                 ArrayList<ResourceEntity> resChildren = res.getChildren();
                 ResourceEntity resourceEntity = gFileById(resChildren, uid);
-                if (resourceEntity != null){
+                if (resourceEntity != null) {
                     return resourceEntity;
                 }
             }
@@ -795,18 +1031,18 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
 
 
     @Override
-    public ArrayList<ResourceEntity> getFilesByIds(String aid, HashSet<String> uids){
+    public ArrayList<ResourceEntity> getFilesByIds(String aid, HashSet<String> uids) {
         List<ResourceEntity> resList = activityResDao.queryByAid(aid);
         return gFilesByIds(resList, uids, new ArrayList<>());
     }
 
-    private ArrayList<ResourceEntity> gFilesByIds(List<ResourceEntity> resList, HashSet<String> uids, ArrayList<ResourceEntity> queriedRes){
-        for (ResourceEntity res: resList){
-            if (!res.getFolder()){
-                if (uids.contains(res.getUid())){
+    private ArrayList<ResourceEntity> gFilesByIds(List<ResourceEntity> resList, HashSet<String> uids, ArrayList<ResourceEntity> queriedRes) {
+        for (ResourceEntity res : resList) {
+            if (!res.getFolder()) {
+                if (uids.contains(res.getUid())) {
                     queriedRes.add(res);
                 }
-            }else {
+            } else {
                 gFilesByIds(res.getChildren(), uids, queriedRes);
             }
         }
@@ -821,18 +1057,21 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
 
     @Override
     public List<ResourceEntity> getAllPublicService() {
-        ArrayList<ResourceEntity> allResource = (ArrayList<ResourceEntity>)activityResDao.findAll();
+        ArrayList<ResourceEntity> allResource = (ArrayList<ResourceEntity>) activityResDao.findAll();
         List<ResourceEntity> publicResource = new ArrayList<>();
         gAllPublicResource(allResource, publicResource);
         return publicResource;
     }
 
-    private List<ResourceEntity> gAllPublicResource(ArrayList<ResourceEntity> resource, List<ResourceEntity> publicResource){
-        for (ResourceEntity item : resource){
-            if (item.getFolder()){
-                gAllPublicResource(item.getChildren(), publicResource);
-            }else {
-                if (item.getPrivacy().equals("public")){
+    private List<ResourceEntity> gAllPublicResource(ArrayList<ResourceEntity> resource, List<ResourceEntity> publicResource) {
+        for (ResourceEntity item : resource) {
+            //try-catch item.getFolder() == null
+            if (item.getFolder() != null && item.getFolder()) {
+                if (item.getChildren() != null) {
+                    gAllPublicResource(item.getChildren(), publicResource);
+                }
+            } else {
+                if (item.getPrivacy() != null && item.getPrivacy().equals("public")) {
                     publicResource.add(item);
                 }
             }
@@ -842,11 +1081,11 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
 
 
     @Override
-    public Map<String, ArrayList<ResourceEntity>>  getAllFileInProjects(HashSet<String> aids) {
+    public Map<String, ArrayList<ResourceEntity>> getAllFileInProjects(HashSet<String> aids) {
         HashMap<String, ArrayList<ResourceEntity>> projectFile = new HashMap<>();
         try {
             Iterator<String> iterator = aids.iterator();
-            while (iterator.hasNext()){
+            while (iterator.hasNext()) {
                 String aid = iterator.next();
                 List<ResourceEntity> resList = activityResDao.queryByAid(aid);
                 ArrayList<ResourceEntity> fileList = Lists.newArrayList();
@@ -854,11 +1093,223 @@ public class ActivityResServiceImpl<num> implements ActivityResService {
                 projectFile.put(aid, fileList);
             }
             return projectFile;
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println(e.toString());
             return null;
         }
 
+    }
+
+
+//    ===============================更新一些内容(重新组织一下代码) 使得资源模块更加独立,模块化一些, 仅处理与资源有关的内容=============================
+//
+//     @Override
+//     public ResourceEntity uploadRes(Part filePart, String userId, String aid, String path) throws IOException {
+//         if (filePart == null) return null;
+//         InputStreamResource isResource = new InputStreamResource(filePart.getInputStream()) {
+//             @Override
+//             public long contentLength() {
+//                 return filePart.getSize();
+//             }
+//
+//             @Override
+//             public String getFilename() {
+//                 return filePart.getSubmittedFileName();
+//             }
+//         };
+//         LinkedMultiValueMap<String, Object> multiValueMap = new LinkedMultiValueMap<>();
+//         String fileFullName = filePart.getSubmittedFileName();
+//         String fileName;
+//         try {
+//             fileName = fileFullName.split("\\.")[0];
+//         } catch (IndexOutOfBoundsException e) {
+//             fileName = fileFullName;
+//         }
+//         multiValueMap.add("datafile", isResource);
+//         multiValueMap.add("name", fileName);
+//         RestTemplateUtil restTemplateUtil = new RestTemplateUtil();
+//         String uploadRemoteUrl = "http://" + dataContainerIp + ":8082/data";
+//         //向dataContainer传输数据
+//         JSONObject uploadRemoteResult = restTemplateUtil.postRequestMap(uploadRemoteUrl, multiValueMap).getBody();
+//         Integer uploadResultInfo = uploadRemoteResult.getInteger("code");
+//         String dataIdInContainer = uploadRemoteResult.getJSONObject("data").getString("id");
+//
+//         //上传失败
+//         if (!uploadResultInfo.equals(1)) return null;
+//
+//         //成功将资源上传到数据容器中,将资源存入数据库
+//         ResourceEntity res = new ResourceEntity();
+//         String uid = UUID.randomUUID().toString();
+//         res.setUid(uid);
+//         res.setName(fileName);
+//         res.setSuffix(suffix);
+//         res.setUploadTime(new Date());
+//         res.setFileSize(part.getSize());
+//         res.setPrivacy(req.getParameter("privacy"));
+//         res.setType(req.getParameter("type"));
+//         res.setDescription(req.getParameter("description"));
+//         res.setFolder(false);
+//         res.setUserUpload(true);
+//         String address = "http://" + dataContainerIp + ":8082" + "/data/" + dataIdInContainer;
+//         res.setAddress(address);
+//         res.setUploaderId(userId);
+//         res.setUploaderName(uploadName);
+//         res.setActivityId(aid);
+//         try {
+//             String thumbnail = req.getParameter("thumbnail");
+//             String editToolInfo = req.getParameter("editToolInfo");
+//             res.setThumbnail(thumbnail);
+//             res.setEditToolInfo(editToolInfo);
+//         } catch (Exception ex) {
+//
+//         }
+//
+//         uploadInfos.uploaded.add(res);
+//         //======活动链接相关操作======================================
+//         //资源自动更新内容, public can auto update
+//         if (nodeService.nodeIsPresent(aid) != null) {
+//             uploadUids.add(uid);
+//         }
+//         //===================================================
+//         //如果不是最后一个，则进入下一次循环
+//         if (fileNum != 0) {
+//             continue;
+//         }
+//         //批量上传至于最后一个资源，开始将资源存入字段中
+//         String rootResUid = paths.get(paths.size() - 1);
+//         //如果为根目录直接存入表中
+//         if (rootResUid.equals("0") && paths.size() == 1) {
+//             for (ResourceEntity resItem : uploadInfos.uploaded) {
+//                 activityResDao.addResource(resItem);
+//             }
+//             break;
+//         }
+//         //将上传的资源存入文件夹中
+//         List<ResourceEntity> putResList = aRes(resourceList, paths, uploadInfos.uploaded, "0");
+//         int index = 0;
+//         for (int i = 0; i < putResList.size(); i++) {
+//             ResourceEntity item = putResList.get(i);
+//             if (item.getUid().equals(rootResUid)) {
+//                 index = i;
+//                 break;
+//             }
+//         }
+//
+//         Query query = new Query(Criteria.where("uid").is(rootResUid));
+//         Update update = new Update();
+//         update.set("children", putResList.get(index).getChildren());
+//         //将所上传的资源存入当前活动中
+//         activityResDao.updateRes(query, update);
+//
+//         return null;
+//     }
+//
+//     @Override
+//     public ResourceEntity uploadRes(MultipartFile filePart) throws IOException {
+//         if (filePart == null) return null;
+//         ByteArrayResource byteArrayResource = new ByteArrayResource(filePart.getBytes()) {
+//             @Override
+//             public long contentLength() {
+//                 return filePart.getSize();
+//             }
+//
+//             @Override
+//             public String getFilename() {
+//                 return filePart.getOriginalFilename();
+//             }
+//         };
+//         return null;
+//     }
+//
+//     //上传本地资源
+//     @Override
+//     public ResourceEntity uploadRes(String path) {
+//         FileSystemResource fileSystemResource = new FileSystemResource(path);
+//
+//         return null;
+//     }
+//
+//
+//     private boolean setResourceToDB(HashSet<ResourceEntity> resList, ArrayList<String> paths) {
+//         //批量上传至于最后一个资源，开始将资源存入字段中
+//         String rootResUid = paths.get(paths.size() - 1);
+//         //如果为根目录直接存入表中
+//         if (rootResUid.equals("0") && paths.size() == 1) {
+//             for (ResourceEntity resItem : uploadInfos.uploaded) {
+//                 activityResDao.addResource(resItem);
+//             }
+//             break;
+//         }
+//         //将上传的资源存入文件夹中
+//         List<ResourceEntity> putResList = aRes(resourceList, paths, uploadInfos.uploaded, "0");
+//         int index = 0;
+//         for (int i = 0; i < putResList.size(); i++) {
+//             ResourceEntity item = putResList.get(i);
+//             if (item.getUid().equals(rootResUid)) {
+//                 index = i;
+//                 break;
+//             }
+//         }
+//
+//         Query query = new Query(Criteria.where("uid").is(rootResUid));
+//         Update update = new Update();
+//         update.set("children", putResList.get(index).getChildren());
+//         //将所上传的资源存入当前活动中
+//         activityResDao.updateRes(query, update);
+//     }
+
+    @Override
+    public ResourceEntity uploadRes(File file, Object res, String aid, ArrayList<String> paths) {
+        FileSystemResource fileSystemResource = new FileSystemResource(file);
+        String fileFullName = file.getName();
+        String fileName;
+        try {
+            fileName = fileFullName.split("\\.")[0];
+        } catch (IndexOutOfBoundsException e) {
+            fileName = fileFullName;
+        }
+        LinkedMultiValueMap<String, Object> multiValueMap = new LinkedMultiValueMap<>();
+        multiValueMap.add("datafile", fileSystemResource);
+        multiValueMap.add("name", fileName);
+        RestTemplateUtil restTemplateUtil = new RestTemplateUtil();
+        String uploadRemoteUrl = "http://" + dataContainerIp + ":8082/data";
+        //向dataContainer传输数据
+        JSONObject uploadRemoteResult = restTemplateUtil.postRequestMap(uploadRemoteUrl, multiValueMap).getBody();
+        Integer uploadResultInfo = uploadRemoteResult.getInteger("code");
+        String dataIdInContainer = uploadRemoteResult.getJSONObject("data").getString("id");
+        String address = "/data/" + dataIdInContainer;
+        //上传失败
+        if (!uploadResultInfo.equals(1)) return null;
+        String[] nullPropertyNames = CommonUtil.getNullPropertyNames(res);
+        ResourceEntity localRes = new ResourceEntity();
+        BeanUtils.copyProperties(res, localRes, nullPropertyNames);
+        localRes.setAddress(address);
+
+        //存入数据库
+        String rootResUid = paths.get(paths.size() - 1);
+        //如果为根目录直接存入表中
+        if (rootResUid.equals("0") && paths.size() == 1) {
+            activityResDao.addResource(localRes);
+        }else {
+            List<ResourceEntity> resourceList = activityResDao.queryByAid(aid);
+            //将上传的资源存入文件夹中
+            List<ResourceEntity> putResList = aRes(resourceList, paths, localRes, "0");
+            //获取需要更新的资源
+            int index = 0;
+            for (int i = 0; i < putResList.size(); i++) {
+                ResourceEntity item = putResList.get(i);
+                if (item.getUid().equals(rootResUid)) {
+                    index = i;
+                    break;
+                }
+            }
+            Query query = new Query(Criteria.where("uid").is(rootResUid));
+            Update update = new Update();
+            update.set("children", putResList.get(index).getChildren());
+            //将所上传的资源存入当前活动中
+            activityResDao.updateRes(query, update);
+        }
+        return localRes;
     }
 }
 

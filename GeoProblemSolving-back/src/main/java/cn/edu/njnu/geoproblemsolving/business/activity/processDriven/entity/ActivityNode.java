@@ -44,6 +44,8 @@ public class ActivityNode {
     /*
     key: 资源 id
     value: 由各限制条件构成的条件字符串
+    value的组成形式
+    type != data ? type : type/format/scale/reference/unit/concept
      */
     HashMap<String, String> resources;
 

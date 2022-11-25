@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="zh-cmn-Hans" xmlns:th=http://www.thymeleaf.org>
-<head >
+<html lang="zh-cmn-Hans" xmlns:th="http://www.thymeleaf.org">
+<head>
     <meta http-equiv="pragma" content="no-cache">
     <meta http-equiv="cache-control" content="no-cache">
     <meta http-equiv="expires" content="0">
     <title>Geo-Problem Solving</title>
     <link rel="shortcut icon" href="/GeoProblemSolving/static/favicon.ico">
-    <meta http-equiv="Content-Type" content=" charset=UTF-8" />
+    <meta http-equiv="Content-Type" content="charset=UTF-8"/>
     <meta name="description" content="Participatory|GeoProblem Solving|GIS">
     <meta name="keywords" content="Participatory|GeoProblem Solving|GIS">
     <meta name="author" content="OpenGMS">
@@ -19,17 +19,19 @@
     <script src="/GeoProblemSolving/js/vue-avatar.min.js"></script>
     <script src="/GeoProblemSolving/js/axios.min.js"></script>
 
-    <style >
+    <style>
         .home-screen {
             position: relative;
             transform: translateY(-60px);
         }
+
         .home-screen img {
             max-width: 100%;
             min-height: 100%;
         }
+
         .home-screen .bg {
-            background-image: url("Images/new/bg.jpg");
+            background-image: url("Images/new/GPS2.png");
             background-size: cover;
             position: absolute;
             width: 100%;
@@ -38,6 +40,7 @@
             left: 0;
             top: 0;
         }
+
         .home-screen .mask {
             background-size: cover;
             position: absolute;
@@ -66,21 +69,25 @@
             align-content: center;
             color: white;
         }
+
         .content .title {
             font-size: 3.8rem;
             font-family: Georgia, sans-serif, serif;
         }
+
         .content .sub-title {
             margin: 1rem;
             display: block;
             font-size: 1.6rem;
             font-family: sans-serif, serif;
         }
+
         .content .desc {
             margin: 1rem;
             font-size: 1.2rem;
             display: block;
         }
+
         .content .home-start-btn {
             margin: 1rem;
             font-size: 1rem;
@@ -105,15 +112,18 @@
         .tools {
             padding: 2rem 0 5rem 0;
         }
+
         .tools .tools-title {
             display: block;
             font-family: Georgia, sans-serif, serif;
             font-size: 2.5rem;
             padding: 1rem 0 3rem 0;
         }
+
         .tools .tools-container {
             min-height: 350px;
         }
+
         .tools .tools-container .card {
             border-top-right-radius: 10px;
             position: relative;
@@ -121,6 +131,7 @@
             overflow: hidden;
             text-align: left;
         }
+
         .tools .tools-container .card .bg {
             display: block;
             width: 100%;
@@ -130,31 +141,39 @@
             left: 0;
             right: 0;
         }
+
         .tools .tools-container .card .img-map {
             background-image: url("Images/new/map.jpg");
         }
+
         .tools .tools-container .card .img-chart {
             background-image: url("Images/new/chart.jpg");
         }
+
         .tools .tools-container .card .img-video {
             background-image: url("Images/new/video.jpg");
         }
+
         .tools .tools-container .card .img-edit {
             background-image: url("Images/new/edit.jpg");
         }
+
         .tools .tools-container .card .img-todo {
             background-image: url("Images/new/notes.jpg");
         }
+
         .tools .tools-container .card .card-title {
             display: block;
             font-family: "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans", Arial, sans-serif;
             padding: 1rem 1rem;
             font-size: 1.4rem;
         }
+
         .tools .tools-container .card .card-desc {
             display: block;
             padding: 0.5rem 1rem;
         }
+
         .tools .tools-container .card a {
             display: inline-block;
             margin: 2rem 1rem;
@@ -166,28 +185,35 @@
             font-size: 2.5rem;
             padding: 1rem 0 3rem 0;
         }
+
         .cases .case-content {
             min-height: 500px;
         }
+
         .cases .case-content .case-item {
             min-height: inherit;
             position: relative;
         }
+
         .cases .case-content .case-item .case-img {
             position: absolute;
             width: 100%;
             height: 100%;
             background-size: cover;
         }
+
         .cases .case-content .case-item .img1 {
             background-image: url("Images/new/planet.jpg");
         }
+
         .cases .case-content .case-item .img2 {
             background-image: url("Images/new/fire.jpg");
         }
+
         .cases .case-content .case-item .img3 {
             background-image: url("Images/new/leaft1.jpg");
         }
+
         .cases .case-content .case-item .mask .bg {
             position: absolute;
             width: 100%;
@@ -197,14 +223,17 @@
             color: white;
             transition: all 0.6s 0s cubic-bezier(0.02, 0.67, 0.45, 0.93);
         }
+
         .cases .case-content .case-item .mask .bg:hover {
             background-color: #5cadff;
             opacity: 0.9;
         }
+
         .cases .case-content .case-item .mask .bg:hover + .case-text {
             opacity: 1;
             transform: translate3d(-50%, -60%, 0);
         }
+
         .cases .case-content .case-item .mask .case-text {
             font-family: "Trebuchet MS", "Lucida Sans Unicode", "Lucida Grande", "Lucida Sans", Arial, sans-serif;
             transition: all 0.6s 0s cubic-bezier(0.02, 0.67, 0.45, 0.93);
@@ -216,9 +245,11 @@
             color: white;
             opacity: 0.7;
         }
+
         .cases .case-content .case-item .mask .case-text i {
             font-size: 6rem;
         }
+
         .cases .case-content .case-item .mask .case-text div {
             font-size: 1.2rem;
         }
@@ -227,11 +258,13 @@
             margin: 5rem auto;
             width: 80%;
         }
+
         .flow .flow-content .flow-title {
             font-family: Georgia, sans-serif, serif;
             font-size: 2.5rem;
             padding: 1rem 0 3rem 0;
         }
+
         .flow .flow-content .flow-line {
             background: linear-gradient(left, #5cadff, #5cadff);
             position: absolute;
@@ -241,26 +274,31 @@
             width: 100%;
             height: 0.4rem;
         }
+
         .flow .flow-content .flow-item-container {
             margin: 5rem 0 0;
             display: flex;
             justify-content: space-around;
         }
+
         .flow .flow-content .flow-item-container .flow-item {
             z-index: 10;
             display: inline-block;
             vertical-align: middle;
             color: #161a1dc0;
         }
+
         .flow .flow-content .flow-item-container .flow-item .flow-item-icon {
             display: inline-block;
             padding: 2rem 3rem;
             font-size: 4.5rem;
             position: relative;
         }
+
         .flow .flow-content .flow-item-container .flow-item .flow-item-icon:hover .flow-item-bg {
             transform: translate3d(-50%, -55%, 0);
         }
+
         .flow .flow-content .flow-item-container .flow-item .flow-item-icon .flow-item-bg {
             transition: all 0.4s 0s cubic-bezier(0.02, 0.67, 0.45, 0.93);
             display: inline-block;
@@ -274,13 +312,15 @@
             border-radius: 10px;
             z-index: -1;
         }
+
         .flow .flow-content .flow-item-container .flow-item .flow-item-text {
             padding: 1rem 0;
             font-size: 1.2rem;
             display: block;
             font-family: "Gill Sans", "Gill Sans MT", Calibri, "Trebuchet MS", sans-serif;
         }
-        [v-cloak]{
+
+        [v-cloak] {
             display: none;
         }
     </style>
@@ -294,14 +334,14 @@
 <body>
 <div id="vueBody" v-cloak style="min-width: 1100px">
     <child-navigation ref="navigationEl" active-type="home" :user-info="userInfo"></child-navigation>
-    <div class="home-screen" >
-        <div class="bg" ></div>
+    <div class="home-screen">
+        <div class="bg"></div>
         <div class="mask"></div>
         <div class="content">
             <div>
                 <span class="title">Solving complex geo-problems? Collaboration.</span>
                 <span class="sub-title">Build Projects | Assemble Participants | Communicate Ideas | Explore Solutions</span>
-                <span class="desc">The platform is full of vitality, where researchers can exchange their views, collide their thoughts,<br />and establish their collaboration.</span>
+                <span class="desc">The platform is full of vitality, where researchers can exchange their views, collide their thoughts,<br/>and establish their collaboration.</span>
                 <i-button class="home-start-btn" @click="start">Try it now</i-button>
             </div>
         </div>
@@ -314,21 +354,21 @@
             <span class="flow-item" @click="toRegister">
               <span class="flow-item-icon blue">
                 <span class="flow-item-bg"></span>
-                  <Icon type="md-build" ></Icon>
+                  <Icon type="md-build"></Icon>
               </span>
               <span class="flow-item-text">Register as a participant</span>
             </span>
-              <span class="flow-item" @click="toCreate">
+                    <span class="flow-item" @click="toCreate">
               <span class="flow-item-icon yellow">
                 <span class="flow-item-bg"></span>
-                  <Icon type="md-search" ></Icon>
+                  <Icon type="md-search"></Icon>
               </span>
               <span class="flow-item-text">Create or join a project</span>
             </span>
-              <span class="flow-item" @click="toTeam">
+                    <span class="flow-item" @click="toTeam">
               <span class="flow-item-icon green">
                 <span class="flow-item-bg"></span>
-                <Icon type="md-share" ></Icon>
+                <Icon type="md-share"></Icon>
               </span>
               <span class="flow-item-text">Communicate ideas in a team</span>
 
@@ -346,26 +386,26 @@
                         <div class="bg"></div>
                         <div class="case-text">
                             <Icon type="md-planet"></Icon>
-                        <div>Planet</div>
-                    </div>
+                            <div>Planet</div>
+                        </div>
                     </div>
                 </i-col>
-                <i-col class="case-item"span="8">
+                <i-col class="case-item" span="8">
                     <div class="case-img img2"></div>
                     <div class="mask" @click="toDemo">
                         <div class="bg"></div>
                         <div class="case-text">
-                            <Icon type="md-flame" ></Icon>
+                            <Icon type="md-flame"></Icon>
                             <div>Fire</div>
                         </div>
                     </div>
                 </i-col>
-                <i-col class="case-item" span="8" >
+                <i-col class="case-item" span="8">
                     <div class="case-img img3"></div>
                     <div class="mask" @click="toDemo">
                         <div class="bg"></div>
                         <div class="case-text">
-                            <Icon type="md-leaf" ></Icon>
+                            <Icon type="md-leaf"></Icon>
                             <div>Forest</div>
                         </div>
                     </div>
@@ -380,9 +420,9 @@
                     <span class="bg img-map"></span>
                     <span class="card-title">Map</span>
                     <span class="card-desc">The tool for visualizing geospatial data</span>
-                <a href="#">Learn More</a>
+                    <a href="#">Learn More</a>
                 </i-col>
-                <i-col class="card"span="4">
+                <i-col class="card" span="4">
                     <span class="bg img-chart"></span>
                     <span class="card-title">Chart</span>
                     <span class="card-desc">Give a deeper understanding for table data</span>
@@ -421,10 +461,10 @@
 <script th:inline="javascript">
     new Vue({
         el: '#vueBody',
-        data:{
-            userInfo:[],
+        data: {
+            userInfo: [],
         },
-        created(){
+        created() {
             var userInfo = {
                 userState: false,
                 name: 'Visitor',
@@ -436,7 +476,7 @@
                 url: "/GeoProblemSolving/user/state",
                 type: "POST",
                 async: false,
-                success: data=> {
+                success: data => {
                     if (data) {
                         data.userState = true;
                         sessionStorage.setItem('userInfo', JSON.stringify(data));
@@ -465,16 +505,16 @@
                     window.location.href = "/GeoProblemSolving/login"
                 }
             },
-            toRegister(){
+            toRegister() {
                 window.location.href = "/GeoProblemSolving/register"
             },
-            toCreate(){
+            toCreate() {
                 window.location.href = "/GeoProblemSolving/newProject"
             },
-            toTeam(){
+            toTeam() {
                 window.location.href = "/GeoProblemSolving/projectList"
             },
-            toDemo(){
+            toDemo() {
                 window.location.href = "/GeoProblemSolving/projectList"
             }
         }

@@ -5,6 +5,7 @@ import cn.edu.njnu.geoproblemsolving.business.resource.entity.*;
 import cn.edu.njnu.geoproblemsolving.business.resource.service.UserResService;
 import cn.edu.njnu.geoproblemsolving.business.resource.util.RestTemplateUtil;
 import cn.edu.njnu.geoproblemsolving.business.user.dao.Impl.UserDaoImpl;
+import cn.edu.njnu.geoproblemsolving.business.user.entity.TokenInfo;
 import cn.edu.njnu.geoproblemsolving.business.user.entity.UserEntity;
 import cn.edu.njnu.geoproblemsolving.common.utils.JsonResult;
 import cn.edu.njnu.geoproblemsolving.common.utils.ResultUtils;
@@ -21,6 +22,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.ResourceUtils;
+import org.springframework.web.client.HttpClientErrorException;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -29,6 +31,8 @@ import java.io.*;
 import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class UserResServiceImpl implements UserResService {
@@ -37,6 +41,9 @@ public class UserResServiceImpl implements UserResService {
 
     @Value("${dataContainer}")
     String dataRemoteIp;
+
+    @Autowired
+    RestTemplateUtil httpUtil;
 
     private final MongoTemplate mongoTemplate;
 
@@ -51,7 +58,6 @@ public class UserResServiceImpl implements UserResService {
      * @return
      */
     public ResponseEntity<byte[]> downRemote(String sourceStoreId) {
-        RestTemplateUtil httpUtil = new RestTemplateUtil();
         String downRemoteUrl = "http://" + dataRemoteIp + ":8082/data/uid?=" + sourceStoreId;
         ResponseEntity<byte[]> response = httpUtil.getDownRemoteResult(downRemoteUrl);
         return response;
@@ -65,7 +71,6 @@ public class UserResServiceImpl implements UserResService {
      */
     public ResponseEntity<byte[]> downSomeRemote(String uids) {
         String downSomeRemoteUrl = "http://" + dataRemoteIp + ":8082/bulkDownload?oids=" + uids;
-        RestTemplateUtil httpUtil = new RestTemplateUtil();
         ResponseEntity<byte[]> response = httpUtil.getDownRemoteResult(downSomeRemoteUrl);
         return response;
     }
@@ -120,27 +125,32 @@ public class UserResServiceImpl implements UserResService {
             }
 
             //新建存储文件夹
-            File path = new File(ResourceUtils.getURL("classpath:").getPath());
-            if (!path.exists()) {
-                path = new File("");
-            }
-            File imgLocation = new File(path.getAbsolutePath(), "static/images/res");
-            if (!imgLocation.exists()) {
-                imgLocation.mkdirs();
-            }
+            String servicePath = request.getSession().getServletContext().getRealPath("/");
+            File folder = new File(servicePath + "resource/images");
+            if (!folder.exists()) folder.mkdirs();
+
+
+            // File path = new File(ResourceUtils.getURL("classpath:").getPath());
+            // if (!path.exists()) {
+            //     path = new File("");
+            // }
+            // File imgLocation = new File(path.getAbsolutePath(), "static/images/res");
+            // if (!imgLocation.exists()) {
+            //     imgLocation.mkdirs();
+            // }
 
             Collection<Part> parts = request.getParts();
             for (Part part : parts) {
                 if (part.getName().equals("picture")) {
                     String filePath = part.getSubmittedFileName();
-                    String folderPath = imgLocation.getPath();
+                    String folderPath = folder.getPath();
 
                     JsonResult storeResult = CommonUtil.fileStore(part, filePath, folderPath);
                     if (storeResult.getCode() == 0)
                         newFileName = storeResult.getData().toString();
                     else
                         return storeResult;
-                    pathURL = "/GeoProblemSolving/images/res/" + newFileName;
+                    pathURL = "/GeoProblemSolving/resource/images/" + newFileName;
                     break;
                 }
             }
@@ -232,10 +242,18 @@ public class UserResServiceImpl implements UserResService {
     @Override
     public ArrayList<ResourceEntity> getAllResFromService(String userId) {
         UserEntity user = userDao.findUserByIdOrEmail(userId);
+        String refreshToken = user.getTokenInfo().getRefreshToken();
         String access_token = user.getTokenInfo().getAccess_token();
         String getUrl = "http://" + userServerIpAndPort + "/auth/res";
-        RestTemplateUtil httpUtil = new RestTemplateUtil();
-        JSONObject resResult = httpUtil.getRequestToServer(getUrl, access_token).getBody();
+        JSONObject resResult;
+        try {
+            resResult = httpUtil.getRequestToServer(getUrl, access_token).getBody();
+        }catch (HttpClientErrorException e){
+            if (!e.getStatusCode().is4xxClientError()) return null;
+            String newAccessToken = httpUtil.refreshToken(userId, refreshToken);
+            if (newAccessToken == null) return null;
+            resResult = httpUtil.getRequestToServer(getUrl, newAccessToken).getBody();
+        }
         int code = (int) resResult.get("code");
         if (code != 0) {
             return null;
@@ -247,10 +265,18 @@ public class UserResServiceImpl implements UserResService {
 
     @Override
     public String delRes(String userId, String rid) {
-        String access_token = userDao.findUserByIdOrEmail(userId).getTokenInfo().getAccess_token();
+        TokenInfo tokenInfo = userDao.findUserByIdOrEmail(userId).getTokenInfo();
+        String access_token = tokenInfo.getAccess_token();
         String url = "http://" + userServerIpAndPort + "/auth/res/" + rid;
-        RestTemplateUtil httpUtil = new RestTemplateUtil();
-        JSONObject delResult = httpUtil.deleteRequestToServer(url, access_token).getBody();
+        JSONObject delResult;
+        try {
+            delResult = httpUtil.deleteRequestToServer(url, access_token).getBody();
+        }catch (HttpClientErrorException e){
+            if (!e.getStatusCode().is4xxClientError()) return null;
+            String newAccessToken = httpUtil.refreshToken(userId, tokenInfo.getRefreshToken());
+            if (newAccessToken == null) return null;
+            delResult = httpUtil.deleteRequestToServer(url, newAccessToken).getBody();
+        }
         int code = (int) delResult.get("code");
         if (code != 0) {
             return "fail";
@@ -278,10 +304,18 @@ public class UserResServiceImpl implements UserResService {
         }
 
 
-        String access_token = userDao.findUserByIdOrEmail(userId).getTokenInfo().getAccess_token();
-        RestTemplateUtil httpUtil = new RestTemplateUtil();
+        TokenInfo tokenInfo = userDao.findUserByIdOrEmail(userId).getTokenInfo();
+        String access_token = tokenInfo.getAccess_token();
         //第一步：先删除用户服务器中字段内容
-        JSONObject delUserServerResult =  httpUtil.deleteRequestToServer(delUserServerUrl, access_token).getBody();
+        JSONObject delUserServerResult;
+        try {
+            delUserServerResult =  httpUtil.deleteRequestToServer(delUserServerUrl, access_token).getBody();
+        }catch (HttpClientErrorException e){
+            if (!e.getStatusCode().is4xxClientError()) return null;
+            String newAccessToken = httpUtil.refreshToken(userId, tokenInfo.getRefreshToken());
+            if (newAccessToken == null) return null;
+            delUserServerResult =  httpUtil.deleteRequestToServer(delUserServerUrl, newAccessToken).getBody();
+        }
         Integer delUserServerCode = delUserServerResult.getInteger("code");
         if (delUserServerCode != 0){
             /*
@@ -317,7 +351,8 @@ public class UserResServiceImpl implements UserResService {
 
     @Override
     public JSONObject createResService(String userId, ResourceEntity resource, String paths) {
-        String access_token = userDao.findUserByIdOrEmail(userId).getTokenInfo().getAccess_token();
+        TokenInfo tokenInfo = userDao.findUserByIdOrEmail(userId).getTokenInfo();
+        String access_token = tokenInfo.getAccess_token();
         resource.setUid(UUID.randomUUID().toString());
         resource.setUploadTime(new Date());
         // MultiValueMap<String, Object> resInfo = new LinkedMultiValueMap<>();
@@ -329,8 +364,16 @@ public class UserResServiceImpl implements UserResService {
         resInfo.put("folder", true);
         // LinkedMultiValueMap<String, Object> folderInfo = JSONObject.parseObject(JSONObject.toJSONString(resource), LinkedMultiValueMap.class);
         String url = "http://" + userServerIpAndPort + "/auth/res/" + paths;
-        RestTemplateUtil httpUtil = new RestTemplateUtil();
-        Object body = httpUtil.postRequestToServer(url, access_token, resInfo).getBody();
+        Object body;
+        try {
+            body = httpUtil.postRequestToServer(url, access_token, resInfo).getBody();
+        }catch (HttpClientErrorException e){
+            if (!e.getStatusCode().is4xxClientError()) return null;
+            String newAccessToken = httpUtil.refreshToken(userId, tokenInfo.getRefreshToken());
+            if (newAccessToken == null) return null;
+            body = httpUtil.postRequestToServer(url, newAccessToken, resInfo).getBody();
+
+        }
         JSONObject createResult = JSONObject.parseObject(JSONObject.toJSONString(body), JSONObject.class);
         int code = (int) createResult.get("code");
         if (code != 0) {
@@ -342,7 +385,8 @@ public class UserResServiceImpl implements UserResService {
 
     @Override
     public String putResService(String userId, ResourceEntity res, String paths, Boolean isFolder) {
-        String access_token = userDao.findUserByIdOrEmail(userId).getTokenInfo().getAccess_token();
+        TokenInfo tokenInfo = userDao.findUserByIdOrEmail(userId).getTokenInfo();
+        String access_token = tokenInfo.getAccess_token();
         JSONObject resInfo = new JSONObject();
         if (isFolder){
             resInfo.put("uid", res.getUid());
@@ -363,8 +407,15 @@ public class UserResServiceImpl implements UserResService {
             url = "http://" + userServerIpAndPort + "/auth/res/" + paths;
         }
 
-        RestTemplateUtil httpUtil = new RestTemplateUtil();
-        JSONObject putResult = httpUtil.putRequestToServer(url, access_token, resInfo).getBody();
+        JSONObject putResult;
+        try {
+            putResult = httpUtil.putRequestToServer(url, access_token, resInfo).getBody();
+        }catch (HttpClientErrorException e){
+            if (!e.getStatusCode().is4xxClientError()) return null;
+            String newAccessToken = httpUtil.refreshToken(userId, tokenInfo.getRefreshToken());
+            if (newAccessToken == null) return null;
+            putResult = httpUtil.putRequestToServer(url, newAccessToken, resInfo).getBody();
+        }
         int code =  putResult.getInteger("code");
         if (code != 0) {
             return "fail";
@@ -394,7 +445,8 @@ public class UserResServiceImpl implements UserResService {
             }
             HttpSession session = req.getSession();
             String userId = (String) session.getAttribute("userId");
-            String access_token = userDao.findUserByIdOrEmail(userId).getTokenInfo().getAccess_token();
+            TokenInfo tokenInfo = userDao.findUserByIdOrEmail(userId).getTokenInfo();
+            String access_token = tokenInfo.getAccess_token();
 
             Collection<Part> parts = req.getParts();
             int fileNum = 0;
@@ -406,12 +458,19 @@ public class UserResServiceImpl implements UserResService {
             //post payLoad存储，使用LinkedMultiValueMap<String, Object>key/value形式进行存储
 
             //restTemplate工具类
-            RestTemplateUtil httpUtil = new RestTemplateUtil();
             for (Part part : parts) {
                 //添加容量限制机制
                 long size = part.getSize();
                 String capacityCheckUrl = "http://" + userServerIpAndPort + "/auth/res/upload/" + size;
-                JSONObject checkResult = httpUtil.getRequestToServer(capacityCheckUrl, access_token).getBody();
+                JSONObject checkResult;
+                try {
+                    checkResult = httpUtil.getRequestToServer(capacityCheckUrl, access_token).getBody();
+                }catch (HttpClientErrorException e){
+                    if (!e.getStatusCode().is4xxClientError()) return null;
+                    String newAccessToken = httpUtil.refreshToken(userId, tokenInfo.getRefreshToken());
+                    if (newAccessToken == null) return null;
+                    checkResult = httpUtil.getRequestToServer(capacityCheckUrl, newAccessToken).getBody();
+                }
                 if (checkResult.getInteger("code") != 0){
                     uploadInfos.sizeOver.add(part.getSubmittedFileName());
                     continue;
@@ -518,10 +577,18 @@ public class UserResServiceImpl implements UserResService {
 
     @Override
     public ArrayList<ResourceEntity> getResPath(String userId, String paths) {
-        String access_token = userDao.findUserByIdOrEmail(userId).getTokenInfo().getAccess_token();
+        TokenInfo tokenInfo = userDao.findUserByIdOrEmail(userId).getTokenInfo();
+        String access_token = tokenInfo.getAccess_token();
         String url = "http://" + userServerIpAndPort + "/auth/res/" + paths;
-        RestTemplateUtil httpUtil = new RestTemplateUtil();
-        JSONObject getResult = httpUtil.getRequestToServer(url, access_token).getBody();
+        JSONObject getResult;
+        try {
+            getResult = httpUtil.getRequestToServer(url, access_token).getBody();
+        }catch (HttpClientErrorException e){
+            if (!e.getStatusCode().is4xxClientError()) return null;
+            String newAccessToken = httpUtil.refreshToken(userId, tokenInfo.getRefreshToken());
+            if (newAccessToken == null) return null;
+            getResult = httpUtil.getRequestToServer(url, newAccessToken).getBody();
+        }
         if (getResult.getInteger("code") != 0){
             return null;
         }
@@ -533,11 +600,19 @@ public class UserResServiceImpl implements UserResService {
     @Override
     public String copyFromProject2Center(String userId, ResourceEntity copiedFile) {
         //实际上只是将数据添加到用户数据库中
-        String access_token = userDao.findUserByIdOrEmail(userId).getTokenInfo().getAccess_token();
+        TokenInfo tokenInfo = userDao.findUserByIdOrEmail(userId).getTokenInfo();
+        String access_token = tokenInfo.getAccess_token();
         String url = "http://" + userServerIpAndPort + "/auth/res/0";
-        RestTemplateUtil httpUntil = new RestTemplateUtil();
         JSONObject copiedFilJson = JSONObject.parseObject(JSONObject.toJSONString(copiedFile));
-        JSONObject copiedResultJson = httpUntil.postRequestToServer(url, access_token, copiedFilJson).getBody();
+        JSONObject copiedResultJson;
+        try {
+            copiedResultJson = httpUtil.postRequestToServer(url, access_token, copiedFilJson).getBody();
+        }catch (HttpClientErrorException e){
+            if (!e.getStatusCode().is4xxClientError()) return null;
+            String newAccessToken = httpUtil.refreshToken(userId, tokenInfo.getRefreshToken());
+            if (newAccessToken == null) return null;
+            copiedResultJson = httpUtil.postRequestToServer(url, newAccessToken, copiedFilJson).getBody();
+        }
         int code = copiedResultJson.getInteger("code");
         if (code != 0){
             return "fail";
@@ -552,20 +627,36 @@ public class UserResServiceImpl implements UserResService {
 
     @Override
     public JSONArray getAllFileList(String userId) {
-        String access_token = userDao.findUserByIdOrEmail(userId).getTokenInfo().getAccess_token();
+        TokenInfo tokenInfo = userDao.findUserByIdOrEmail(userId).getTokenInfo();
+        String access_token = tokenInfo.getAccess_token();
         String url = "http://" + userServerIpAndPort + "/auth/res/file/all";
-        RestTemplateUtil httpUtil = new RestTemplateUtil();
-        JSONObject getAllResult = httpUtil.getRequestToServer(url, access_token).getBody();
+        JSONObject getAllResult;
+        try {
+            getAllResult = httpUtil.getRequestToServer(url, access_token).getBody();
+        }catch (HttpClientErrorException exception){
+            if (!exception.getStatusCode().is4xxClientError()) return null;
+            String newAccessToken = httpUtil.refreshToken(userId, tokenInfo.getRefreshToken());
+            if (newAccessToken == null) return null;
+            getAllResult = httpUtil.getRequestToServer(url, newAccessToken).getBody();
+        }
         return getAllResult.getJSONArray("data");
     }
 
     @Override
     public JsonResult changeFileLocation(String userId, String oldPath, String newPath, ResourceEntity resourceEntity) {
-        String access_token = userDao.findUserByIdOrEmail(userId).getTokenInfo().getAccess_token();
+        TokenInfo tokenInfo = userDao.findUserByIdOrEmail(userId).getTokenInfo();
+        String access_token = tokenInfo.getAccess_token();
         String url = "http://" + userServerIpAndPort + "/auth/res/" + newPath + "/" + oldPath;
         JSONObject resInfo = JSONObject.parseObject(JSONObject.toJSONString(resourceEntity));
-        RestTemplateUtil httpUtil = new RestTemplateUtil();
-        JSONObject uploadResult = httpUtil.putRequestToServer(url, access_token, resInfo).getBody();
+        JSONObject uploadResult;
+        try {
+            uploadResult = httpUtil.putRequestToServer(url, access_token, resInfo).getBody();
+        }catch (HttpClientErrorException exception){
+            if (!exception.getStatusCode().is4xxClientError()) return null;
+            String newAccessToken = httpUtil.refreshToken(userId, tokenInfo.getRefreshToken());
+            if (newAccessToken == null) return null;
+            uploadResult = httpUtil.putRequestToServer(url, newAccessToken, resInfo).getBody();
+        }
         if (uploadResult.getInteger("code") != 0){
             return ResultUtils.error(-2, "fail");
         }

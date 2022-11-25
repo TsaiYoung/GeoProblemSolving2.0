@@ -4,7 +4,7 @@ import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang .RandomStringUtils;
+import org.apache.commons.lang.RandomStringUtils;
 
 import java.io.File;
 import java.io.FileInputStream;

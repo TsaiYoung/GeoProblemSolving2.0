@@ -123,7 +123,7 @@ public class ToolServiceImpl implements ToolService {
         JSONObject getResult = restTemplate.exchange(userDataMethodUrl, HttpMethod.GET, httpEntity, JSONObject.class).getBody();
         // JSONObject getResult = restTemplate.getForEntity(userDataMethodUrl, JSONObject.class).getBody();
         JSONObject publicModelJson = getResult.getJSONObject("data");
-        if (publicModelJson.getBoolean("empty")) {
+        if (publicModelJson.getBooleanValue("empty")) {
             return null;
         }
         List<JSONObject> userDataMethodList = publicModelJson.getJSONArray("content").toJavaList(JSONObject.class);
@@ -161,6 +161,16 @@ public class ToolServiceImpl implements ToolService {
         HttpEntity<JSONObject> httpEntity = new HttpEntity<>(searchJson, headers);
         try {
             ResponseEntity<JSONObject> searchRes = restTemplate.exchange(url, HttpMethod.POST, httpEntity, JSONObject.class);
+            //集合类型相同地址
+            ArrayList dataMethodArray = searchRes.getBody().getJSONObject("data").getObject("list", ArrayList.class);
+            if (dataMethodArray != null && dataMethodArray.size() != 0){
+                for (int i = dataMethodArray.size() - 1; i >= 0; i--){
+                    JSONObject dataMethodJson = JSONObject.parseObject(JSONObject.toJSONString(dataMethodArray.get(i)));
+                    if (dataMethodJson.get("invokeServices") == null){
+                        dataMethodArray.remove(i);
+                    }
+                }
+            }
             return searchRes.getBody().getJSONObject("data");
         } catch (Exception e) {
             return null;
@@ -278,41 +288,46 @@ public class ToolServiceImpl implements ToolService {
                     tempType = "Visualization";
                 }
                 //数据处理方法元数据
-                String metaUrl = "http://" + proxyServerLocation + "/capability?id=" + dataMethodId + "&type=" + tempType + "&token=" + encodeToken;
-                HttpHeaders headers = new HttpHeaders();
-                headers.add("Content-Type", "application/json");
-                HttpEntity httpEntity = new HttpEntity<>(headers);
-                ResponseEntity<JSONObject> jsonObjectResponseEntity = restTemplate.exchange(metaUrl, HttpMethod.GET, httpEntity, JSONObject.class);
-                if (jsonObjectResponseEntity.getStatusCode().is2xxSuccessful()) {
-                    JSONObject dataMethodMeta = jsonObjectResponseEntity.getBody();
-                    Integer code = dataMethodMeta.getInteger("code");
-                    if (code == 0) {
-                        tool.setDataMethodMeta(dataMethodMeta.getJSONObject("capability"));
-                    } else {
-                        return null;
+                try {
+                    String metaUrl = "http://" + proxyServerLocation + "/capability?id=" + dataMethodId + "&type=" + tempType + "&token=" + encodeToken;
+                    HttpHeaders headers = new HttpHeaders();
+                    headers.add("Content-Type", "application/json");
+                    HttpEntity httpEntity = new HttpEntity<>(headers);
+                    ResponseEntity<JSONObject> jsonObjectResponseEntity = restTemplate.exchange(metaUrl, HttpMethod.GET, httpEntity, JSONObject.class);
+                    if (jsonObjectResponseEntity.getStatusCode().is2xxSuccessful()) {
+                        JSONObject dataMethodMeta = jsonObjectResponseEntity.getBody();
+                        Integer code = dataMethodMeta.getInteger("code");
+                        if (code == 0) {
+                            tool.setDataMethodMeta(dataMethodMeta.getJSONObject("capability"));
+                        } else {
+                            return null;
+                        }
                     }
-                }
-                // tool.setDataMethodMeta(dataMethodMeta);
+                    // tool.setDataMethodMeta(dataMethodMeta);
 
-                //从数据容器读取测试数据直接存入工具库中
-                ArrayList<ToolTestData> toolTestDatas = new ArrayList<>();
-                String url = "http://" + proxyServerLocation + "/files?id=" + dataMethodId + "&token=" + encodeToken;
-                JSONObject testDataJson = restTemplate.getForEntity(url, JSONObject.class).getBody();
-                JSONArray testIds = testDataJson.getJSONArray("id");
-                for (int i = 0; i < testIds.size(); i++) {
-                    ToolTestData toolTestData = new ToolTestData();
-                    toolTestData.setTestDataId(UUID.randomUUID().toString());
-                    JSONObject testDataId = JSONObject.parseObject(JSONObject.toJSONString(testIds.get(i)));
-                    String fileName = testDataId.getString("file_name");
-                    String[] fileNameSplit = fileName.split("\\.");
-                    String dataUrl = testDataId.getString("url");
-                    toolTestData.setFileName(fileNameSplit[0]);
-                    toolTestData.setSuffix(fileNameSplit[1]);
-                    toolTestData.setUrl(dataUrl);
-                    toolTestDatas.add(toolTestData);
+                    //从数据容器读取测试数据直接存入工具库中
+                    // ArrayList<ToolTestData> toolTestDatas = new ArrayList<>();
+                    // String url = "http://" + proxyServerLocation + "/files?id=" + dataMethodId + "&token=" + encodeToken;
+                    // JSONObject testDataJson = restTemplate.getForEntity(url, JSONObject.class).getBody();
+                    // JSONArray testIds = testDataJson.getJSONArray("id");
+                    // for (int i = 0; i < testIds.size(); i++) {
+                    //     ToolTestData toolTestData = new ToolTestData();
+                    //     toolTestData.setTestDataId(UUID.randomUUID().toString());
+                    //     JSONObject testDataId = JSONObject.parseObject(JSONObject.toJSONString(testIds.get(i)));
+                    //     String fileName = testDataId.getString("file_name");
+                    //     String[] fileNameSplit = fileName.split("\\.");
+                    //     String dataUrl = testDataId.getString("url");
+                    //     toolTestData.setFileName(fileNameSplit[0]);
+                    //     toolTestData.setSuffix(fileNameSplit[1]);
+                    //     toolTestData.setUrl(dataUrl);
+                    //     toolTestDatas.add(toolTestData);
+                    // }
+                    // tool.setToolTestData(toolTestDatas);
+                }catch (Exception e){
+                    System.out.println("Data proxy server error: " + e.toString());
+                    return null;
                 }
 
-                tool.setToolTestData(toolTestDatas);
             }
         }
         return toolDao.createTool(tool);
@@ -451,6 +466,8 @@ public class ToolServiceImpl implements ToolService {
         Query query = new Query();
         Criteria criteria = new Criteria("privacy").is("Public");
         Criteria inCriteria = new Criteria("recommendation").in("All", purpose);
+        Criteria presentCriteria = new Criteria("present").is(true);
+        query.addCriteria(presentCriteria);
         query.addCriteria(criteria);
         query.addCriteria(inCriteria);
         return toolDao.findByFields(query);

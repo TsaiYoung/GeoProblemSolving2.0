@@ -13,7 +13,7 @@ const routes = [
     name: "Navigation",
     component: resolve => require(["@/components/navigation"], resolve),
     children: [
-      {path: "", redirect: "staticPage"},
+      { path: "", redirect: "staticPage" },
       {
         path: "staticPage",
         name: "StaticPage",
@@ -77,6 +77,12 @@ const routes = [
         name: "NewProject",
         component: resolve =>
           require(["@/components/projects/newProject"], resolve)
+      },
+      {
+        path: "workflow/:projectId",
+        name: "Workflow",
+        component: resolve =>
+          require(["@/components/projects/workflow"], resolve)
       },
       {
         path: "community",
@@ -211,7 +217,7 @@ const routes = [
     path: "/chat",
     name: "chatUtil",
     component: resolve =>
-      require(["@/components/tools/entity/chatroom"], resolve)
+      require(["@/components/tools/entity/chatroom/chatroom.vue"], resolve)
   },
   {
     path: "/draw",
@@ -332,6 +338,31 @@ const routes = [
     name: "toolTemplate",
     component: resolve => require(["@/components/tools/toolPreview"], resolve)
   },
+  {
+    path: "/landisii/species",
+    name: "species",
+    component: resolve => require(["@/components/tools/entity/LandisII-tools/species"], resolve)
+  },
+  {
+    path: "/landisii/bioSuccession",
+    name: "bioSuccession",
+    component: resolve => require(["@/components/tools/entity/LandisII-tools/biomass-succession"], resolve)
+  },
+  {
+    path: "/landisii/climateConfig",
+    name: "climateConfig",
+    component: resolve => require(["@/components/tools/entity/LandisII-tools/climateConfig"], resolve)
+  },
+  {
+    path: "/landisii/dynamicInputData",
+    name: "dynamicInputData",
+    component: resolve => require(["@/components/tools/entity/LandisII-tools/dynamicInputData"], resolve)
+  },
+  {
+    path: "/editor/markDown",
+    name: "markDown",
+    component: resolve => require(["@/components/tools/entity/editor/markDown"], resolve)
+  },
 ];
 
 export default new Router({
@@ -341,7 +372,7 @@ export default new Router({
     if (savedPosition) {
       return savedPosition;
     } else {
-      return {x: 0, y: 0};
+      return { x: 0, y: 0 };
     }
   }
 });

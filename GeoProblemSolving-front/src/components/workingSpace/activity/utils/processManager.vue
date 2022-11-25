@@ -35,11 +35,19 @@
 .domain >>> input {
   opacity: 0.5;
 }
-
+.res-protocol-type >>> .ivu-select-selection {
+  height: 37px;
+}
+.res-protocol-type >>> .ivu-select-placeholder {
+  height: 35px;
+}
+.res-protocol >>> .ti-input::-webkit-scrollbar {
+  display: none;
+}
 .res-protocol >>> .ti-input {
   display: inline-block;
   width: 267px;
-  height: 32px;
+  height: 39px;
   line-height: 1.5;
   padding: 4px 7px;
   font-size: 12px;
@@ -50,8 +58,11 @@
   background-image: none;
   position: relative;
   cursor: text;
+  overflow-x: scroll;
 }
-
+.res-protocol >>> .ti-tags {
+  height: 30px;
+}
 .res-protocol >>> input {
   opacity: 0.5;
 }
@@ -65,10 +76,20 @@
   width: 50px;
   height: 100px;
 }
+.popup {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 901;
+}
 </style>
 <template>
   <Row>
     <Col span="24" style="margin-top: 20px">
+      <div v-show="linkBuildModal" class="popup"></div>
       <div>
         <Row type="flex" justify="space-around">
           <div
@@ -154,7 +175,6 @@
                   icon="md-link"
                   title="Start to link"
                   style="float: right; margin-left: 10px"
-                  id="linkBegin"
                   >Start to link
                 </Button>
                 <Button
@@ -166,7 +186,6 @@
                   icon="md-link"
                   title="Complete linking"
                   style="float: right; margin-left: 10px"
-                  id="linkEnd"
                   >Complete linking
                 </Button>
                 <Button
@@ -177,7 +196,6 @@
                   icon="md-link"
                   title="Complete linking"
                   style="float: right; margin-left: 10px; cursor: default"
-                  id="linkEnd"
                   >Complete linking
                 </Button>
               </template>
@@ -196,10 +214,23 @@
           </div>
           <div id="steps"></div>
 
-          <div v-if="collaborating">
+          <div
+            v-if="
+              Array.isArray(participants) &&
+              participants.length != 0 &&
+              collaborating &&
+              permissionIdentity(
+                activityInfo.permission,
+                'manage_child_activity'
+              )
+            "
+            style="margin-top: 20px"
+          >
+            <strong>Collaborating:</strong>
             <div
               v-for="(item, index) in collaboratingInfoList"
-              style="margin-bottom: 10px; background-color: pink"
+              :key="index"
+              style="margin: 20px 0 10px"
             >
               <avatar-list
                 v-if="item.collLinkUser.length > 0"
@@ -243,12 +274,19 @@
       v-model="linkBuildModal"
       title="Set link protocol"
       width="800"
-      :styles="{ top: '30px' }"
+      style="top: 100px; position: fixed; z-index: 902"
+      :mask="false"
       ok-text="Link"
       cancel-text="Cancel"
+      @on-visible-change="linkModalStatus"
     >
       <div slot="footer">
-        <div style="display: inline-block; position: absolute; left: 10px">
+        <div style="display: flex; position: absolute; left: 30px">
+          <span
+            style="margin-right: 10px; font-size: 14px; vertical-align: top"
+            v-if="collLinkUser.length > 1"
+            >Online collaborating members:
+          </span>
           <avatar-list
             :list="collLinkUser"
             v-if="collLinkUser.length > 1"
@@ -263,7 +301,7 @@
       <Divider orientation="left">Activity link</Divider>
       <div v-if="selectedActivities.length >= 2" style="margin: 0 20px">
         <div style="margin-bottom: 15px">
-          <label>Type of activity relations: </label>
+          <label>Type of activity relations:</label>
           <RadioGroup v-model="protocolType" @on-change="changeProtocolType">
             <Radio label="Sequence" style="margin-left: 20px"></Radio>
             <Radio label="Branch" style="margin-left: 20px"></Radio>
@@ -561,8 +599,8 @@
           </Select>
         </div>
         <template v-if="userProtocolForm.roleProtocol === 'Constraints'">
-          <div style="display: flex; margin-bottom: 15px">
-            <div style="margin-top: 5px; width: 100px">Role:</div>
+          <div style="display: flex; margin-bottom: 10px">
+            <div style="margin-top: 10px; width: 100px">Role:</div>
             <Select
               v-model="userProtocolForm.linkRoles"
               multiple
@@ -583,8 +621,8 @@
               <Option value="ordinary-member">Ordinary-member</Option>
             </Select>
           </div>
-          <div style="display: flex">
-            <div style="margin-top: 5px; width: 72px">Domains:</div>
+          <div style="display: flex; margin-bottom: 10px">
+            <div style="margin-top: 10px; width: 100px">Domains:</div>
             <Select
               v-model="userProtocolForm.selectUserDomain"
               multiple
@@ -596,11 +634,12 @@
                 v-for="(item, index) in userDomain"
                 :value="item.name"
                 :key="index"
-              ></Option>
+                >{{ item.name }}
+              </Option>
             </Select>
           </div>
-          <div style="display: flex">
-            <div style="margin-top: 5px; width: 72px">Organizations:</div>
+          <div style="display: flex; margin-bottom: 10px">
+            <div style="margin-top: 10px; width: 100px">Organizations:</div>
             <Select
               v-model="userProtocolForm.selectUserOrg"
               multiple
@@ -612,7 +651,8 @@
                 v-for="(item, index) in userOrganizations"
                 :value="item.name"
                 :key="index"
-              ></Option>
+                >{{ item.name }}
+              </Option>
             </Select>
           </div>
         </template>
@@ -647,11 +687,220 @@
             <div style="margin-top: 5px; width: 72px">Types:</div>
             <Select
               v-model="resProtocolForm.types"
+              class="res-protocol-type"
+              multiple
+              :max-tag-count="2"
+              placeholder="Type of resources"
+              style="width: 267px; height: 39px"
+              @on-change="resTypeChange"
+            >
+              <Option value="data">Data</Option>
+              <Option value="paper">Papers</Option>
+              <Option value="document">Documents</Option>
+              <Option value="model">Models</Option>
+              <Option value="image">Images</Option>
+              <Option value="video">Videos</Option>
+              <Option value="variable">Variables</Option>
+              <Option value="others">Others</Option>
+            </Select>
+            <div
+              style="
+                margin-top: 5px;
+                margin-left: 50px;
+                width: 72px;
+                height: 39px;
+              "
+            >
+              Formats:
+            </div>
+            <vue-tags-input
+              class="res-protocol"
+              v-model="formats_tag"
+              :tags="resProtocolForm.formats"
+              :autocomplete-items="formatFilteredItems"
+              @tags-changed="formatChange"
+            />
+          </div>
+          <div style="display: flex; margin-bottom: 15px">
+            <div style="margin-top: 5px; width: 72px; height: 39px">
+              Scales:
+            </div>
+            <vue-tags-input
+              class="res-protocol"
+              v-model="scales_tag"
+              :tags="resProtocolForm.scales"
+              :autocomplete-items="scaleFilteredItems"
+              @tags-changed="scaleChange"
+            />
+            <div
+              style="
+                margin-top: 5px;
+                margin-left: 50px;
+                width: 72px;
+                height: 39px;
+              "
+            >
+              References:
+            </div>
+            <vue-tags-input
+              class="res-protocol"
+              v-model="references_tag"
+              :tags="resProtocolForm.references"
+              :autocomplete-items="referenceFilteredItems"
+              @tags-changed="referenceChange"
+            />
+          </div>
+          <div style="display: flex; margin-bottom: 15px">
+            <div style="margin-top: 5px; width: 72px; height: 39px">Units:</div>
+            <vue-tags-input
+              class="res-protocol"
+              v-model="units_tag"
+              :tags="resProtocolForm.units"
+              :autocomplete-items="unitFilteredItems"
+              @tags-changed="unitChange"
+            />
+            <div
+              style="
+                margin-top: 5px;
+                margin-left: 50px;
+                width: 72px;
+                height: 39px;
+              "
+            >
+              Concepts:
+            </div>
+            <vue-tags-input
+              class="res-protocol"
+              v-model="concepts_tag"
+              :tags="resProtocolForm.concepts"
+              :autocomplete-items="conceptFilteredItems"
+              @tags-changed="conceptChange"
+            />
+          </div>
+        </template>
+      </div>
+    </Modal>
+    <Modal
+      class="link-protocol"
+      v-model="viewLinkModal"
+      title="View link protocol"
+      width="800"
+      :styles="{ top: '30px' }"
+    >
+      <div slot="footer">
+        <div>
+          <Button type="primary" @click="viewLinkModal = false">Ok</Button>
+        </div>
+      </div>
+
+      <Divider orientation="left">Person link</Divider>
+      <div style="margin: 0 20px">
+        <div style="display: flex; margin-bottom: 15px">
+          <div style="margin-top: 5px; width: 150px">
+            Type of person protocol:
+          </div>
+          <Select
+            v-model="viewLinkProtocolForm.roleProtocol"
+            style="width: 200px"
+            placeholder="Select"
+            disabled
+          >
+            <Option value="None">None</Option>
+            <Option value="All">All</Option>
+            <Option value="Constraints">Constraints</Option>
+          </Select>
+        </div>
+        <template v-if="viewLinkProtocolForm.roleProtocol === 'Constraints'">
+          <div style="display: flex; margin-bottom: 10px">
+            <div style="margin-top: 10px; width: 100px">Role:</div>
+            <Select
+              v-model="viewLinkProtocolForm.roles"
+              multiple
+              placeholder="Which roles of participants could join the next activity?"
+              disabled
+            >
+              <Option value="manager">Manager</Option>
+              <Divider style="margin: 5px 0"></Divider>
+              <Option value="core" disabled>Core team</Option>
+              <Option value="researcher">Researcher</Option>
+              <Option value="expert">Expert</Option>
+              <Option value="decision-maker">Decision-maker</Option>
+              <Option value="core-member">Core-member</Option>
+              <Divider style="margin: 5px 0"></Divider>
+              <Option value="ordinary" disabled>Ordinary team</Option>
+              <Option value="stakeholder">Stakeholder</Option>
+              <Option value="consultant">Consultant</Option>
+              <Option value="ordinary-member">Ordinary-member</Option>
+            </Select>
+          </div>
+          <div style="display: flex; margin-bottom: 10px">
+            <div style="margin-top: 10px; width: 100px">Domains:</div>
+            <Select
+              v-model="viewLinkProtocolForm.domains"
+              multiple
+              :max-tag-count="4"
+              placeholder="Which domains of participants could join the next activity?"
+              disabled
+            >
+              <Option
+                v-for="(item, index) in viewLinkProtocolForm.domains"
+                :value="item"
+                :key="index"
+                >{{ item }}
+              </Option>
+            </Select>
+          </div>
+          <div style="display: flex; margin-bottom: 10px">
+            <div style="margin-top: 10px; width: 100px">Organizations:</div>
+            <Select
+              v-model="viewLinkProtocolForm.organizations"
+              multiple
+              :max-tag-count="4"
+              placeholder="Which organizations of participants could join the next activity?"
+              disabled
+            >
+              <Option
+                v-for="(item, index) in viewLinkProtocolForm.organizations"
+                :value="item"
+                :key="index"
+                >{{ item }}
+              </Option>
+            </Select>
+          </div>
+        </template>
+      </div>
+
+      <Divider orientation="left">Resource link</Divider>
+      <div style="margin: 0 20px">
+        <div style="display: flex; margin-bottom: 15px">
+          <div style="width: 150px">Update automatically:</div>
+          <i-switch v-model="viewLinkProtocolForm.autoUpdate" disabled />
+        </div>
+        <div style="display: flex; margin-bottom: 15px">
+          <div style="margin-top: 5px; width: 150px">
+            Type of resource protocol:
+          </div>
+          <Select
+            v-model="viewLinkProtocolForm.resProtocol"
+            style="width: 200px"
+            placeholder="Select"
+            disabled
+          >
+            <Option value="None">None</Option>
+            <Option value="All">All</Option>
+            <Option value="Constraints">Constraints</Option>
+          </Select>
+        </div>
+        <template v-if="viewLinkProtocolForm.resProtocol === 'Constraints'">
+          <div style="display: flex; margin-bottom: 15px">
+            <div style="margin-top: 5px; width: 72px">Types:</div>
+            <Select
+              v-model="viewLinkProtocolForm.types"
               multiple
               :max-tag-count="2"
               placeholder="Type of resources"
               style="width: 267px"
-              @on-change="resTypeChange"
+              disabled
             >
               <Option value="data">Data</Option>
               <Option value="paper">Papers</Option>
@@ -665,48 +914,83 @@
             <div style="margin-top: 5px; margin-left: 50px; width: 72px">
               Formats:
             </div>
-            <vue-tags-input
-              class="res-protocol"
-              v-model="formats_tag"
-              :tags="resProtocolForm.formats"
-              @tags-changed="formatChange"
-            />
+            <Select
+              v-model="viewLinkProtocolForm.formats"
+              multiple
+              style="width: 267px"
+              disabled
+            >
+              <Option
+                v-for="(item, index) in viewLinkProtocolForm.formats"
+                :value="item"
+                :key="index"
+                >{{ item }}
+              </Option>
+            </Select>
           </div>
           <div style="display: flex; margin-bottom: 15px">
             <div style="margin-top: 5px; width: 72px">Scales:</div>
-            <vue-tags-input
-              class="res-protocol"
-              v-model="scales_tag"
-              :tags="resProtocolForm.scales"
-              @tags-changed="scaleChange"
-            />
+            <Select
+              v-model="viewLinkProtocolForm.scales"
+              multiple
+              style="width: 267px"
+              disabled
+            >
+              <Option
+                v-for="(item, index) in viewLinkProtocolForm.scales"
+                :value="item"
+                :key="index"
+                >{{ item }}
+              </Option>
+            </Select>
             <div style="margin-top: 5px; margin-left: 50px; width: 72px">
               References:
             </div>
-            <vue-tags-input
-              class="res-protocol"
-              v-model="references_tag"
-              :tags="resProtocolForm.references"
-              @tags-changed="referenceChange"
-            />
+            <Select
+              v-model="viewLinkProtocolForm.references"
+              multiple
+              style="width: 267px"
+              disabled
+            >
+              <Option
+                v-for="(item, index) in viewLinkProtocolForm.references"
+                :value="item"
+                :key="index"
+                >{{ item }}
+              </Option>
+            </Select>
           </div>
           <div style="display: flex; margin-bottom: 15px">
             <div style="margin-top: 5px; width: 72px">Units:</div>
-            <vue-tags-input
-              class="res-protocol"
-              v-model="units_tag"
-              :tags="resProtocolForm.units"
-              @tags-changed="unitChange"
-            />
+            <Select
+              v-model="viewLinkProtocolForm.units"
+              multiple
+              style="width: 267px"
+              disabled
+            >
+              <Option
+                v-for="(item, index) in viewLinkProtocolForm.units"
+                :value="item"
+                :key="index"
+                >{{ item }}
+              </Option>
+            </Select>
             <div style="margin-top: 5px; margin-left: 50px; width: 72px">
               Concepts:
             </div>
-            <vue-tags-input
-              class="res-protocol"
-              v-model="concepts_tag"
-              :tags="resProtocolForm.concepts"
-              @tags-changed="conceptChange"
-            />
+            <Select
+              v-model="viewLinkProtocolForm.concepts"
+              multiple
+              style="width: 267px"
+              disabled
+            >
+              <Option
+                v-for="(item, index) in viewLinkProtocolForm.concepts"
+                :value="item"
+                :key="index"
+                >{{ item }}
+              </Option>
+            </Select>
           </div>
         </template>
       </div>
@@ -726,7 +1010,6 @@ import VueTagsInput from "@johmun/vue-tags-input";
 import loginModal from "../../../user/userState/loginModal.vue";
 import * as socketApi from "../../../../api/socket";
 import avatarList from "../../../common/AvatarList";
-
 import { sendSock } from "../../../../api/socket";
 import { del } from "../../../../axios";
 // import Driver from "driver.js";
@@ -735,12 +1018,19 @@ export default {
   props: ["activityInfo", "childActivities", "userInfo", "projectInfo"],
   data() {
     return {
+      ops: {
+        bar: {
+          background: "#808695",
+        },
+      },
       userRole: "visitor",
       //button
       linkBtn: false,
       removeLinkBtn: false,
       nodePositionBtn: false,
       //link
+      viewLinkModal: false,
+      viewLinkProtocolForm: {},
       // relation
       protocolType: "Sequence",
       linkStep: 0,
@@ -778,6 +1068,12 @@ export default {
         units: [],
         concepts: [],
       },
+      //autoComplete 内容
+      autoFormats: [{ text: "" }],
+      autoScales: [{ text: "" }],
+      autoReferences: [{ text: "" }],
+      autoUnits: [{ text: "" }],
+      autoConcepts: [{ text: "" }],
 
       // 添加/编辑step
       stepInfo: {
@@ -831,9 +1127,9 @@ export default {
       // 是否有正在协同的内容
       collaborating: false,
       /*
-        正在协同 link 的数组, id 由所选活动的aid构成
-        linkId, activityLinks, otherNodes, linkRestriction
-         */
+          正在协同 link 的数组, id 由所选活动的aid构成
+          linkId, activityLinks, otherNodes, linkRestriction
+           */
       collaboratingInfoList: [],
       //协同 Link 的 id 数组，用于判断是否相同[[aid1, .....], [aid2,.....], [] ,[] ]
       collaboratingId: [],
@@ -848,9 +1144,9 @@ export default {
   },
   created() {
     this.init();
-    this.getProcessSteps();
   },
   mounted() {
+    this.getProcessSteps();
     this.showSteps();
     this.btnEnable();
     this.roleIdentity();
@@ -895,45 +1191,85 @@ export default {
         if (this.collaboratingInfoList.length > 0) {
           this.collaborating = true;
         }
+        if (this.collaboratingInfoList.length == 0) {
+          this.collaborating = false;
+        }
       },
     },
-    linkBuildModal() {
-      if (this.linkBuildModal) {
-        this.linkingId = this.selectedActivities
-          .map((item) => {
-            return item.aid;
-          })
-          .toString();
-        return;
-      }
-      let content = {
-        behavior: "exitCollLink",
-        linkingId: this.linkingId,
-        userId: this.userInfo.userId,
-      };
-      this.sendLinkSock(content);
-      //去除当前页面 collaborationInfoList 中的内容
-      this.computeCollIndex(this.linkingId);
-      if (this.collaIndex == -1) {
-        return;
-      }
-      this.collaboratingInfoList[this.collaIndex].collLinkUser =
-        this.collaboratingInfoList[this.collaIndex].collLinkUser.filter(
-          (item) => item.userId != tempUserId
-        );
-      if (
-        this.collaboratingInfoList[this.collaIndex].collLinkUser.length == 0
-      ) {
-        this.collaboratingInfoList.splice(this.collaIndex, 1);
-      }
-      this.initLinkForm();
-    },
+    // linkBuildModal() {
+    //   if (this.linkBuildModal) {
+    //     this.linkingId = this.selectedActivities
+    //       .map((item) => {
+    //         return item.aid;
+    //       })
+    //       .toString();
+    //     return;
+    //   }
+    //   let content = {
+    //     behavior: "exitCollLink",
+    //     linkingId: this.linkingId,
+    //     userId: this.userInfo.userId,
+    //   };
+    //   this.sendLinkSock(content);
+    //   //去除当前页面 collaborationInfoList 中的内容
+    //   this.computeCollIndex(this.linkingId);
+    //   if (this.collaIndex == -1) {
+    //     return;
+    //   }
+    //   this.collaboratingInfoList[this.collaIndex].collLinkUser =
+    //     this.collaboratingInfoList[this.collaIndex].collLinkUser.filter(
+    //       (item) => item.userId != tempUserId
+    //     );
+    //   if (
+    //     this.collaboratingInfoList[this.collaIndex].collLinkUser.length == 0
+    //   ) {
+    //     this.collaboratingInfoList.splice(this.collaIndex, 1);
+    //   }
+    //   this.initLinkForm();
+    // },
   },
 
   beforeDestroy() {
     if (socketApi.getSocketInfo(this.socketId).linked) {
       socketApi.close(this.socketId);
     }
+  },
+  computed: {
+    formatFilteredItems() {
+      return this.autoFormats.filter((i) => {
+        return (
+          i.text.toLowerCase().indexOf(this.formats_tag.toLowerCase()) !== -1
+        );
+      });
+    },
+    scaleFilteredItems() {
+      return this.autoScales.filter((i) => {
+        return (
+          i.text.toLowerCase().indexOf(this.scales_tag.toLowerCase()) !== -1
+        );
+      });
+    },
+    referenceFilteredItems() {
+      return this.autoReferences.filter((i) => {
+        return (
+          i.text.toLowerCase().indexOf(this.references_tag.toLowerCase()) !== -1
+        );
+      });
+    },
+    unitFilteredItems() {
+      return this.autoUnits.filter((i) => {
+        return (
+          i.text.toLowerCase().indexOf(this.units_tag.toLowerCase()) !== -1
+        );
+      });
+    },
+    conceptFilteredItems() {
+      return this.autoConcepts.filter((i) => {
+        return (
+          i.text.toLowerCase().indexOf(this.concepts_tag.toLowerCase()) !== -1
+        );
+      });
+    },
   },
   methods: {
     computeCollIndex(collLinkId) {
@@ -970,7 +1306,7 @@ export default {
           this.$Notice.info({
             title: `${senderName}  join the page of pathway.`,
           });
-          //如果有人正在进行活动连接，则将内容发送过去
+          //Send content if an active connection is in progress.
           if (this.linkBuildModal) {
             let senderId = messageJson.sender;
             let initLinkInfo = {
@@ -986,7 +1322,7 @@ export default {
               sender: this.userInfo.userId,
               senderName: this.userInfo.name,
               type: "general",
-              receivers: [senderId],
+              receiver: senderId,
               content: initLinkInfo,
             };
             socketApi.sendSock(this.socketId, sockMsg, this.socketOnMessage);
@@ -1010,66 +1346,50 @@ export default {
         } else if (behavior == "exitCollLink") {
           let tempUserId = content.userId;
           if (this.linkingId == content.linkingId) {
-            //todo: 测试是否正确
             this.collLinkUser = this.collLinkUser.filter(
               (item) => item.userId != tempUserId
             );
-          } else {
-            this.computeCollIndex(content.linkingId);
-            if (this.collaIndex == -1) {
-              return;
-            }
-            this.collaboratingInfoList[this.collaIndex].collLinkUser =
-              this.collaboratingInfoList[this.collaIndex].collLinkUser.filter(
-                (item) => item.userId != tempUserId
-              );
-            if (
-              this.collaboratingInfoList[this.collaIndex].collLinkUser.length ==
-              0
-            ) {
-              this.collaboratingInfoList.splice(this.collaIndex, 1);
-            }
+          }
+          this.computeCollIndex(content.linkingId);
+          if (this.collaIndex == -1) {
+            return;
+          }
+          this.collaboratingInfoList[this.collaIndex].collLinkUser =
+            this.collaboratingInfoList[this.collaIndex].collLinkUser.filter(
+              (item) => item.userId != tempUserId
+            );
+          if (
+            this.collaboratingInfoList[this.collaIndex].collLinkUser.length == 0
+          ) {
+            this.collaboratingInfoList.splice(this.collaIndex, 1);
           }
         } else if (behavior == "joinCollLink") {
           //加入协同
           let tempCollLinker = content.collLinkUser;
           if (this.linkingId == content.linkingId) {
             this.collLinkUser = tempCollLinker;
-          } else {
-            this.computeCollIndex(content.linkingId);
-            if (this.collaIndex == -1) {
-              return;
-            }
-            this.collaboratingInfoList[this.collaIndex].collLinkUser =
-              tempCollLinker;
           }
+          this.computeCollIndex(content.linkingId);
+          if (this.collaIndex == -1) {
+            return;
+          }
+          this.collaboratingInfoList[this.collaIndex].collLinkUser =
+            tempCollLinker;
         } else if (behavior == "bulk") {
+          // 正在进行连接的则更新并删除等待队列
           if (this.linkingId == content.linkingId) {
             this.processUpdate();
-            // this.newLinkStore(this.beginNode.aid, this.endNode.aid, content.protocolId);
-            //...
-            //
-            //
-            //
-            //
-            //
-            //
-            //
-            //
-            //
-            //
-            //
-            //
-            //...
             this.linkBuildModal = false;
-          } else {
-            this.computeCollIndex(content.linkingId);
-            if (this.collaIndex == -1) {
-              return;
-            }
-            //删除等待队列
-            this.collaboratingInfoList.splice(this.collaIndex, 1);
           }
+          this.computeCollIndex(content.linkingId);
+          if (this.collaIndex == -1) {
+            return;
+          }
+          //删除等待队列
+          this.collaboratingInfoList.splice(this.collaIndex, 1);
+        } else if (behavior == "removeLink") {
+          this.processStructure = content.processStructure;
+          this.updateStepChart();
         } else if (behavior == "setLink") {
           let param = content.param;
           switch (param) {
@@ -1086,22 +1406,21 @@ export default {
                 this.activityLinks = this.selectedActivities.map((item) => {
                   return 0;
                 });
-              } else {
-                //协同等待
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
-                }
-                this.collaboratingInfoList[this.collaIndex].protocolType =
-                  tempType;
-                this.collaboratingInfoList[this.collaIndex].selectedActivities =
-                  tempSel;
-                this.collaboratingInfoList[this.collaIndex].otherNodes =
-                  JSON.parse(JSON.stringify(tempSel));
-                this.activityLinks = tempSel.map((item) => {
-                  return 0;
-                });
               }
+              //协同等待
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[this.collaIndex].protocolType =
+                tempType;
+              this.collaboratingInfoList[this.collaIndex].selectedActivities =
+                tempSel;
+              this.collaboratingInfoList[this.collaIndex].otherNodes =
+                JSON.parse(JSON.stringify(tempSel));
+              this.activityLinks = tempSel.map((item) => {
+                return 0;
+              });
               break;
             case "activityLinks":
               let tempLinks = content.activityLinks;
@@ -1109,40 +1428,37 @@ export default {
               if (this.linkingId == content.linkingId) {
                 this.activityLinks = tempLinks;
                 this.otherNodes = tempOtherNodes;
-              } else {
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
-                }
-                this.collaboratingInfoList[this.collaIndex].activityLinks =
-                  tempLinks;
-                this.collaboratingInfoList[this.collaIndex].otherNodes =
-                  tempOtherNodes;
               }
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[this.collaIndex].activityLinks =
+                tempLinks;
+              this.collaboratingInfoList[this.collaIndex].otherNodes =
+                tempOtherNodes;
               break;
             case "roleProtocol":
               let tempRole = content.roleProtocol;
               if (this.linkingId == content.linkingId) {
                 if (tempRole == "Constraints") {
                   this.userDomain = content.userDomain;
-                  this.userOrganizations = this.userOrganizations;
+                  this.userOrganizations = content.userOrganization;
                 }
                 this.$set(this.userProtocolForm, "roleProtocol", tempRole);
-              } else {
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
-                }
-                this.collaboratingInfoList[
-                  this.collaIndex
-                ].userProtocolForm.roleProtocol = tempRole;
-                if (tempRole == "Constraints") {
-                  this.collaboratingInfoList[this.collaIndex].userDomains =
-                    content.userDomain;
-                  this.collaboratingInfoList[
-                    this.collaIndex
-                  ].userOrganizations = content.userOrganizations;
-                }
+              }
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[
+                this.collaIndex
+              ].userProtocolForm.roleProtocol = tempRole;
+              if (tempRole == "Constraints") {
+                this.collaboratingInfoList[this.collaIndex].userDomains =
+                  content.userDomain;
+                this.collaboratingInfoList[this.collaIndex].userOrganizations =
+                  content.userOrganizations;
               }
               break;
             case "userRole":
@@ -1167,15 +1483,14 @@ export default {
                   "selectUserDomain",
                   tempSelectDomain
                 );
-              } else {
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
-                }
-                this.collaboratingInfoList[
-                  this.collaIndex
-                ].userProtocolForm.selectUserDomain = tempSelectDomain;
               }
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[
+                this.collaIndex
+              ].userProtocolForm.selectUserDomain = tempSelectDomain;
               break;
             case "userOrganization":
               let tempSelectOrg = content.userSelectOrganization;
@@ -1185,127 +1500,136 @@ export default {
                   "selectUserOrg",
                   tempSelectOrg
                 );
-              } else {
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
-                }
-                this.collaboratingInfoList[
-                  this.collaIndex
-                ].userProtocolForm.selectUserOrg = tempOrg;
               }
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[
+                this.collaIndex
+              ].userProtocolForm.selectUserOrg = tempOrg;
               break;
             case "autoUpdate":
               let tempAuto = content.autoUpdate;
               if (this.linkingId == content.linkingId) {
                 this.$set(this.resProtocolForm, "autoUpdate", tempAuto);
-              } else {
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
-                }
-                this.collaboratingInfoList[
-                  this.collaIndex
-                ].resProtocolForm.autoUpdate = tempAuto;
               }
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[
+                this.collaIndex
+              ].resProtocolForm.autoUpdate = tempAuto;
               break;
             case "resProtocol":
               let tempProtocol = content.resProtocol;
               if (this.linkingId == content.linkingId) {
                 this.$set(this.resProtocolForm, "resProtocol", tempProtocol);
-              } else {
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
+                let resMetaInfo = content.resMetaInfo;
+                if (resMetaInfo !== undefined) {
+                  if (resMetaInfo.format !== undefined) {
+                    this.autoFormats = resMetaInfo.format;
+                  }
+                  if (resMetaInfo.scale !== undefined) {
+                    this.autoScales = resMetaInfo.scale;
+                  }
+                  if (resMetaInfo.reference !== undefined) {
+                    this.autoReferences = resMetaInfo.reference;
+                  }
+                  if (resMetaInfo.unit !== undefined) {
+                    this.autoUnits = resMetaInfo.unit;
+                  }
+                  if (resMetaInfo.concept !== undefined) {
+                    this.autoConcepts = resMetaInfo.concept;
+                  }
                 }
-                this.collaboratingInfoList[
-                  this.collaIndex
-                ].resProtocolForm.resProtocol = tempProtocol;
               }
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[
+                this.collaIndex
+              ].linkRestriction.resProtocol.resProtocol = tempProtocol;
               break;
             case "resType":
               let tempTypes = content.resType;
               if (this.linkingId == content.linkingId) {
                 this.$set(this.resProtocolForm, "types", tempTypes);
-              } else {
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
-                }
-                this.collaboratingInfoList[
-                  this.collaIndex
-                ].resProtocolForm.types = tempTypes;
               }
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[
+                this.collaIndex
+              ].linkRestriction.resProtocol.types = tempTypes;
               break;
             case "resFormat":
               let tempFormat = content.resFormat;
               if (this.linkingId == content.linkingId) {
                 this.$set(this.resProtocolForm, "formats", tempFormat);
-              } else {
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
-                }
-                this.collaboratingInfoList[
-                  this.collaIndex
-                ].resProtocolForm.formats = tempFormat;
               }
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[
+                this.collaIndex
+              ].linkRestriction.resProtocol.formats = tempFormat;
               break;
             case "resScale":
               let tempScale = content.resScale;
               if (this.linkingId == content.linkingId) {
                 this.$set(this.resProtocolForm, "scales", tempScale);
-              } else {
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
-                }
-                this.collaboratingInfoList[
-                  this.collaIndex
-                ].resProtocolForm.scales = tempScale;
               }
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[
+                this.collaIndex
+              ].linkRestriction.resProtocol.scales = tempScale;
               break;
             case "resReference":
               let tempReference = content.resReference;
               if (this.linkingId == content.linkingId) {
                 this.$set(this.resProtocolForm, "references", tempReference);
-              } else {
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
-                }
-                this.collaboratingInfoList[
-                  this.collaIndex
-                ].resProtocolForm.references = tempReference;
               }
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[
+                this.collaIndex
+              ].linkRestriction.resProtocol.references = tempReference;
               break;
             case "resUnit":
               let tempUnit = content.resUnit;
               if (this.linkingId == content.linkingId) {
                 this.$set(this.resProtocolForm, "units", tempUnit);
-              } else {
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
-                }
-                this.collaboratingInfoList[
-                  this.collaIndex
-                ].resProtocolForm.units = tempUnit;
               }
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[
+                this.collaIndex
+              ].linkRestriction.resProtocol.units = tempUnit;
               break;
             case "resConcept":
               let tempConcept = content.resConcept;
               if (this.linkingId == content.linkingId) {
                 this.$set(this.resProtocolForm, "concepts", tempConcept);
-              } else {
-                this.computeCollIndex(content.linkingId);
-                if (this.collaIndex == -1) {
-                  return;
-                }
-                this.collaboratingInfoList[
-                  this.collaIndex
-                ].resProtocolForm.concepts = tempConcept;
               }
+              this.computeCollIndex(content.linkingId);
+              if (this.collaIndex == -1) {
+                return;
+              }
+              this.collaboratingInfoList[
+                this.collaIndex
+              ].linkRestriction.resProtocol.concepts = tempConcept;
               break;
           }
         }
@@ -1353,6 +1677,41 @@ export default {
         this.userRole,
         operation
       );
+    },
+    //退出协同的界面，当无人则删除
+    linkModalStatus() {
+      //点开则计算 linkingId
+      if (this.linkBuildModal) {
+        this.linkingId = this.selectedActivities
+          .map((item) => {
+            return item.aid;
+          })
+          .toString();
+        return;
+      }
+      //退出协同
+      let content = {
+        behavior: "exitCollLink",
+        linkingId: this.linkingId,
+        userId: this.userInfo.userId,
+      };
+      this.sendLinkSock(content);
+      //去除当前页面 collaborationInfoList 中的内容
+      this.computeCollIndex(this.linkingId);
+      if (this.collaIndex == -1) {
+        return;
+      }
+      let tempUserId = this.userInfo.userId;
+      this.collaboratingInfoList[this.collaIndex].collLinkUser =
+        this.collaboratingInfoList[this.collaIndex].collLinkUser.filter(
+          (item) => item.userId != tempUserId
+        );
+      if (
+        this.collaboratingInfoList[this.collaIndex].collLinkUser.length == 0
+      ) {
+        this.collaboratingInfoList.splice(this.collaIndex, 1);
+      }
+      this.initLinkForm();
     },
     changeLoginModal(status) {
       this.tempLoginModal = status;
@@ -1420,6 +1779,8 @@ export default {
           };
           this.activityInfo.pathway.push(newStepNode);
         }
+        this.processStructure = this.activityInfo.pathway;
+        this.updatePathway();
       } else if (
         this.activityInfo.pathway.length < this.childActivities.length
       ) {
@@ -1445,8 +1806,9 @@ export default {
             status: true,
           };
           this.activityInfo.pathway.push(newStepNode);
-          this.updatePathway();
         }
+        this.processStructure = this.activityInfo.pathway;
+        this.updatePathway();
       } else if (
         this.activityInfo.pathway.length > this.childActivities.length
       ) {
@@ -1463,9 +1825,27 @@ export default {
             this.removePathwayNode(this.activityInfo.pathway[i].aid);
           }
         }
+        this.processStructure = this.activityInfo.pathway;
         this.updatePathway();
+      } else {
+        this.processStructure = this.activityInfo.pathway;
       }
-      this.processStructure = this.activityInfo.pathway;
+    },
+    getProtocolInfo(last, next) {
+      this.axios
+        .get(
+          `/GeoProblemSolving/activityDriven/${this.activityInfo.aid}/${last}/${next}`
+        )
+        .then((res) => {
+          if (res.data == "Offline") {
+            this.$store.commit("userLogout");
+            this.tempLoginModal = true;
+          } else if (res.data.code == 0) {
+            this.viewLinkModal = true;
+            this.viewLinkProtocolForm = res.data.data;
+          }
+        })
+        .catch((e) => {});
     },
     showSteps() {
       let option = {
@@ -1589,7 +1969,9 @@ export default {
           for (var j = 0; j < this.processStructure[i].next.length; j++) {
             option.series[0].links.push({
               source: this.processStructure[i].name,
+              sourceId: this.processStructure[i].aid,
               target: this.processStructure[i].next[j].name,
+              targetId: this.processStructure[i].next[j].aid,
             });
           }
         }
@@ -1607,33 +1989,39 @@ export default {
       // 单击选择步骤
       this.stepChart.on("click", function (params) {
         if (_this.procedureDrag) {
-          if (option.series[0].data[params.data.index].symbolSize == 45) {
-            option.series[0].data[params.data.index].symbolSize = 60;
+          if (params.dataType == "edge") {
+            let lastNode = params.data.sourceId;
+            let nextNode = params.data.targetId;
+            _this.getProtocolInfo(lastNode, nextNode);
+          } else if (params.dataType == "node") {
+            if (option.series[0].data[params.data.index].symbolSize == 45) {
+              option.series[0].data[params.data.index].symbolSize = 60;
 
-            // record the selected step nodes
-            _this.selectedActivities.push({
-              aid: params.data.aid,
-              id: params.data.index,
-              name: params.data.name,
-              category: params.data.category,
-              next: params.data.next,
-              last: params.data.last,
-            });
-          } else if (
-            option.series[0].data[params.data.index].symbolSize == 60
-          ) {
-            option.series[0].data[params.data.index].symbolSize = 45;
+              // record the selected step nodes
+              _this.selectedActivities.push({
+                aid: params.data.aid,
+                id: params.data.index,
+                name: params.data.name,
+                category: params.data.category,
+                next: params.data.next,
+                last: params.data.last,
+              });
+            } else if (
+              option.series[0].data[params.data.index].symbolSize == 60
+            ) {
+              option.series[0].data[params.data.index].symbolSize = 45;
 
-            // remove these not selected step nodes
-            for (var i = 0; i < _this.selectedActivities.length; i++) {
-              if (_this.selectedActivities[i].aid == params.data.aid) {
-                _this.selectedActivities.splice(i, 1);
-                break;
+              // remove these not selected step nodes
+              for (var i = 0; i < _this.selectedActivities.length; i++) {
+                if (_this.selectedActivities[i].aid == params.data.aid) {
+                  _this.selectedActivities.splice(i, 1);
+                  break;
+                }
               }
             }
+            _this.stepChart.setOption(option);
+            _this.btnEnable();
           }
-          _this.stepChart.setOption(option);
-          _this.btnEnable();
         }
       });
       // 双击切换当前步骤
@@ -1885,6 +2273,10 @@ export default {
               },
             };
             this.sendLinkSock(content);
+            this.collLinkUser = this.participants.filter(
+              (item) => item.userId == this.userInfo.userId
+            );
+            this.collaboratingInfoList.push(content.linkInfo);
           } else {
             //此几个选中的活动正在进行连接
             let linkingInfo = this.collaboratingInfoList[this.collaIndex];
@@ -2107,11 +2499,13 @@ export default {
         domains: this.userProtocolForm.selectUserDomain,
         organizations: this.userProtocolForm.selectUserOrg,
       };
+
+      let level = window.location.href.split("level=")[1];
       let protocolForm = {
         relation: relation,
         restriction: restriction,
+        level: level,
       };
-
       // save protocol
       this.axios
         .post("/GeoProblemSolving/activityDriven", protocolForm)
@@ -2144,6 +2538,13 @@ export default {
             };
             this.sendLinkSock(content);
 
+            //等待队列，如果有则删除；如果无则不管
+            this.computeCollIndex(content.linkingId);
+            if (this.collaIndex == -1) {
+              return;
+            }
+            //删除等待队列
+            this.collaboratingInfoList.splice(this.collaIndex, 1);
             this.linkBuildModal = false;
           } else {
             this.$Message.error("Fail to link activities.");
@@ -2214,15 +2615,22 @@ export default {
 
       // 重新渲染
       this.updateStepChart();
-      // 更新pathway
+      // 更新图的 pathway
       this.breakLink(beginNode.aid, endNode.aid);
+      this.updatePathway();
+      //
+      let content = {
+        behavior: "removeLink",
+        processStructure: this.processStructure,
+      };
+      this.sendLinkSock(content);
       // this.delLinkStore(beginNode.aid, endNode.aid);
       this.selectedActivities = [];
       this.removeLinkBtn = false;
     },
     breakLink(beginNode, endNode) {
       this.axios
-        .post(
+        .delete(
           `/GeoProblemSolving/activityDriven/${this.activityInfo.aid}/${beginNode}/${endNode}`
         )
         .then((res) => {
@@ -2261,9 +2669,10 @@ export default {
         aidList.push(activity.aid);
       });
       if (val == "Constraints") {
+        let level = window.location.href.split("level=")[1];
         this.axios
           .get(
-            "/GeoProblemSolving/activityDriven/user/tag/" + aidList.toString()
+            `/GeoProblemSolving/activityDriven/user/tag/${level}/${aidList.toString()}`
           )
           .then((res) => {
             let code = res.data.code;
@@ -2344,41 +2753,63 @@ export default {
       this.sendLinkSock(content);
     },
     resProtocolChange(val) {
+      let aidList = [];
+      this.selectedActivities.forEach((activity) => {
+        aidList.push(activity.aid);
+      });
       let content = {
         behavior: "setLink",
         param: "resProtocol",
         linkingId: this.linkingId,
         resProtocol: this.resProtocolForm.resProtocol,
       };
-      this.sendLinkSock(content);
-
-      let aidList = [];
-      this.selectedActivities.forEach((activity) => {
-        aidList.push(activity.aid);
-      });
       if (val == "Constraints") {
-        this.axios
-          .get(
-            "/GeoProblemSolving/activityDriven/res/tag/" + aidList.toString()
-          )
-          .then((res) => {
-            let code = res.data.code;
-            if (code != 0) {
-              this.$Notice.info({
-                desc: "ERROR!",
-              });
-            } else {
-              let data = res.data.data;
-              this.resTypes = data.types;
-              this.resSuffixes = data.suffixes;
-            }
-          })
-          .catch((e) => {
-            this.$Notice.info({
-              desc: "ERROR!",
-            });
-          });
+        //
+        let resMetaInfo = this.operationApi.getResMetaInfo(aidList);
+        if (resMetaInfo !== undefined) {
+          content["resMetaInfo"] = resMetaInfo;
+          if (resMetaInfo.format !== undefined) {
+            this.autoFormats = resMetaInfo.format;
+          }
+          if (resMetaInfo.scale !== undefined) {
+            this.autoScales = resMetaInfo.scale;
+          }
+          if (resMetaInfo.reference !== undefined) {
+            this.autoReferences = resMetaInfo.reference;
+          }
+          if (resMetaInfo.unit !== undefined) {
+            this.autoUnits = resMetaInfo.unit;
+          }
+          if (resMetaInfo.concept !== undefined) {
+            this.autoConcepts = resMetaInfo.concept;
+          }
+        }
       }
+
+      this.sendLinkSock(content);
+      // if (val == "Constraints") {
+      //   this.axios
+      //     .get(
+      //       "/GeoProblemSolving/activityDriven/res/tag/" + aidList.toString()
+      //     )
+      //     .then((res) => {
+      //       let code = res.data.code;
+      //       if (code != 0) {
+      //         this.$Notice.info({
+      //           desc: "ERROR!",
+      //         });
+      //       } else {
+      //         let data = res.data.data;
+      //         this.resTypes = data.types;
+      //         this.resSuffixes = data.suffixes;
+      //       }
+      //     })
+      //     .catch((e) => {
+      //       this.$Notice.info({
+      //         desc: "ERROR!",
+      //       });
+      //     });
+      // }
     },
     resTypeChange() {
       let content = {
@@ -2391,7 +2822,7 @@ export default {
     },
     formatChange(newTag) {
       this.resProtocolForm.formats = newTag;
-      console.log(newTag);
+      // console.log(newTag);
       let content = {
         behavior: "setLink",
         param: "resFormat",

@@ -5,7 +5,7 @@
       <div style="display:flex;align-items:center">
         <div class="memberImg">
           <img
-            v-if="participant.avatar != '' && participant.avatar!='undefined'"
+            v-if="participant.avatar != '' && participant.avatar!= undefined"
             :src="participant.avatar"
             style="width:55px;height:55px"
           />

@@ -276,7 +276,7 @@ footer {
         <i>Open Geographic Modeling and Simulation</i>
       </h2>
       <p class="footerBottom">
-        Copyright © 2011-2021 OpenGMS. All rights reserved.
+        Copyright © 2011-2022 OpenGMS. All rights reserved.
       </p>
     </footer>
   </div>
@@ -311,7 +311,6 @@ export default {
     }, 10);
   },
   mounted() {
-    this.linkSocket();
     this.reSize();
     window.addEventListener("resize", this.reSize);
   },
@@ -348,7 +347,7 @@ export default {
     },
     notifications() {
       return this.$store.getters.notifications;
-    }
+    },
   },
   watch: {
     "$route.name": function (newVal, oldVal) {
@@ -371,7 +370,7 @@ export default {
       if (this.$store.getters.userState) {
         this.initWebSocket();
         this.getUnreadNoticeCount();
-    }
+      }
     },
     setMenuTitle(newVal) {
       switch (newVal) {
@@ -488,7 +487,11 @@ export default {
     },
     initWebSocket() {
       socketApi.initWebSocket("NoticeSocket");
-      socketApi.sendSock("NoticeSocket", {"type": "ping"}, this.getSocketMessage)
+      socketApi.sendSock(
+        "NoticeSocket",
+        { type: "test" },
+        this.getSocketMessage
+      );
     },
     onOpen() {
       // console.log("NoticeSocket连接成功！");
@@ -497,8 +500,11 @@ export default {
       socketApi.sendSock("NoticeSocket", data, this.getSocketMessage);
     },
     getSocketMessage(data) {
-      this.unreadNoticeCount++;
-      this.$Message.info("You have a new notice!");
+      if (data.type != "members"){
+        this.unreadNoticeCount++;
+        this.$Message.info("You have a new notice!");
+      }
+
       // console.log(data);
     },
     readNotificationNum() {

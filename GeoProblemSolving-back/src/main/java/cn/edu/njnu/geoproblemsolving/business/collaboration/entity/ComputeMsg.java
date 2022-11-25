@@ -8,6 +8,7 @@ import org.springframework.data.annotation.Id;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 
 /**
@@ -22,6 +23,11 @@ public class ComputeMsg {
     private String toolId;
 
     private String aid;
+
+    //对应的操作 id
+    private String oid;
+
+    private boolean computeSuc = false;
 
     //invoke 时参与的人
     private ArrayList<CollaborationUser> receivers;
@@ -61,6 +67,14 @@ public class ComputeMsg {
             users.put(receiver.getUserId(), receiver);
         }
         return users;
+    }
+
+    public HashSet<String> getParticipants(){
+        HashSet<String> userIds = new HashSet<>();
+        for (CollaborationUser receiver : receivers){
+            userIds.add(receiver.getUserId());
+        }
+        return userIds;
     }
 
 }

@@ -172,7 +172,7 @@ public class MindmapSocket {
         messageMember.put("messageType", messageType);
         messageMember.put("controller", Controller.getJSONObject(groupID).toString());
         messageMember.put("requireList", requireLists.get(groupID).toString());
-        messageMember.put("userList", memberList.toJSONString());
+        messageMember.put("userList", memberList.toString());
 
         try {
             //向客户端发送消息

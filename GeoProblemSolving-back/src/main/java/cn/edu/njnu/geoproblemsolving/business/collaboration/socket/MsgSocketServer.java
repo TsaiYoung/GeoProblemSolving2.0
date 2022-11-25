@@ -1,6 +1,6 @@
 package cn.edu.njnu.geoproblemsolving.business.collaboration.socket;
 
-import cn.edu.njnu.geoproblemsolving.Config.MyEndPointConfigure;
+import cn.edu.njnu.geoproblemsolving.Config.GetHttpSessionConfigurator;
 import cn.edu.njnu.geoproblemsolving.business.collaboration.service.CollaborationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -16,15 +16,24 @@ import java.io.IOException;
  * @version: 1.0.0
  */
 @Component
-@ServerEndpoint(value = "/MsgServer/{aid}", configurator = MyEndPointConfigure.class)
+@ServerEndpoint(value = "/MsgServer/{aid}", configurator = GetHttpSessionConfigurator.class)
 public class MsgSocketServer {
 
+    // @Autowired
+    // CollaborationService collaborationService;
+    private static CollaborationService collaborationService;
+
     @Autowired
-    CollaborationService collaborationService;
+    public void setCollaborationService(CollaborationService collaborationService){
+        MsgSocketServer.collaborationService = collaborationService;
+    }
+
 
     @OnOpen
-    public void onOpen(@PathParam("aid") String aid, Session session, EndpointConfig config) throws IOException {
+    public void onOpen(@PathParam("aid") String aid, Session session, EndpointConfig config) {
+        if (aid.length() > 50) aid = aid.substring(0, 36);
         collaborationService.msgStart(aid, session, config);
+        // System.out.println("----Message onopen----");
     }
 
     /**
@@ -34,18 +43,24 @@ public class MsgSocketServer {
      * @throws IOException
      */
     @OnMessage
-    public void onMessage(@PathParam("aid") String aid, String message) throws IOException {
+    public void onMessage(@PathParam("aid") String aid, String message) {
+        if (aid.length() > 50) aid = aid.substring(0, 36);
         collaborationService.msgTransfer(aid, message);
     }
 
     @OnClose
-    public void onClose(@PathParam("aid") String aid, Session session) throws IOException {
-        collaborationService.communicationClose(aid, session);
+    public void onClose(@PathParam("aid") String aid, Session session) {
+        String toolId = null;
+        if (aid.length() > 50) {
+            aid = aid.substring(0, 36);
+            toolId  = aid.substring(36);
+        }
+        collaborationService.communicationClose(aid, session, toolId);
+        // System.out.println("----Message Onclose----");
     }
 
     @OnError
     public void onError(Throwable error) {
-        System.out.println("Error!");
         error.printStackTrace();
     }
 }
